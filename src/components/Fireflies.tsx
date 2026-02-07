@@ -81,8 +81,8 @@ export default function Fireflies() {
 
   // Diamond-shaped wing geometry — tapers to points at tips
   const wingGeo = useMemo(() => {
-    const w = FIREFLY.radius * 4
-    const h = FIREFLY.radius * 0.8
+    const w = FIREFLY.radius * 0.8
+    const h = FIREFLY.radius * 0.16
     const shape = new THREE.Shape()
     shape.moveTo(-w, 0)
     shape.lineTo(0, h)
