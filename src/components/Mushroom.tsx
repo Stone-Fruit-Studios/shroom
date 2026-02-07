@@ -23,8 +23,7 @@ const ANIM = {
   },
 } as const;
 
-const IDLE_ANIMATIONS = ["Bounce_Right", "Bounce_Left", "Hop", "Idle_Wobble"];
-const RESTLESS_ANIMATION = "Restless_Hop";
+const IDLE_ANIMATIONS = ["Bounce_Right", "Bounce_Left", "Hop", "Idle_Wobble", "Restless_Hop"];
 
 // Movement offsets for each animation
 const ANIMATION_OFFSETS: Record<string, number> = {
@@ -44,15 +43,27 @@ function getRandomIdleAnimation(): string {
 }
 
 export default function Mushroom() {
-  // Load the GLB model
-  const gltf = useGLTF("/Mushroom-cute.glb");
+  // Load both GLB models
+  const cuteGltf = useGLTF("/Mushroom-cute.glb");
+  const evilGltf = useGLTF("/Mushroom-evil.glb");
 
-  const groupRef = useRef<THREE.Group>(null);
-  const modelRef = useRef<THREE.Group>(null);
+  // Separate refs for each model
+  const cuteGroupRef = useRef<THREE.Group>(null);
+  const evilGroupRef = useRef<THREE.Group>(null);
 
-  // Animation system
-  const { actions, names } = useAnimations(gltf.animations, groupRef);
+  // Get evolution state to determine which model to use
+  const evolution = useMushroomStore((s) => s.evolution);
+  const isDark = evolution === 'dark' || evolution === 'demonic';
+
+  // Separate animation systems for each model
+  const cuteAnimations = useAnimations(cuteGltf.animations, cuteGroupRef);
+  const evilAnimations = useAnimations(evilGltf.animations, evilGroupRef);
+
+  // Use the appropriate animation system and ref based on current mode
+  const { actions } = isDark ? evilAnimations : cuteAnimations;
+  const groupRef = isDark ? evilGroupRef : cuteGroupRef;
   const currentAnimationRef = useRef<string | null>(null);
+  const lastAnimationStartTime = useRef<number>(0);
   const basePositionX = useRef<number>(0); // Track accumulated X position
   const consecutiveRightMoves = useRef<number>(0);
   const consecutiveLeftMoves = useRef<number>(0);
@@ -89,6 +100,24 @@ export default function Mushroom() {
       : pickRandom(POKE_MESSAGES.normal);
     store.receiveMessage(msg);
   }, []);
+
+  // Reset animation system when model switches
+  useEffect(() => {
+    console.log("Model switched! Evolution:", evolution, "isDark:", isDark);
+    console.log("Available animations:", Object.keys(actions));
+
+    // Force animation system to restart (but preserve position)
+    currentAnimationRef.current = null;
+    lastAnimationStartTime.current = 0;
+    consecutiveRightMoves.current = 0;
+    consecutiveLeftMoves.current = 0;
+    // Don't reset basePositionX - preserve the mushroom's position when switching models
+
+    // Immediately set the new model's position to match the saved position
+    if (groupRef.current) {
+      groupRef.current.position.x = basePositionX.current;
+    }
+  }, [isDark, actions, evolution, groupRef]);
 
   // Initialize first animation on mount
   useEffect(() => {
@@ -213,16 +242,21 @@ export default function Mushroom() {
     );
 
     // Animation timing and switching
-    const currentAction = currentAnimationRef.current
-      ? actions[currentAnimationRef.current]
-      : null;
+    // Check if we need to start a new animation
+    const currentAction = currentAnimationRef.current ? actions[currentAnimationRef.current] : null;
+    const isCurrentlyRunning = currentAction?.isRunning() ?? false;
+    const timeSinceLastStart = t - lastAnimationStartTime.current;
 
-    // Check if current animation has finished
-    if (currentAction && !currentAction.isRunning()) {
+    const shouldStartNewAnimation =
+      (Object.keys(actions).length > 0) && // Actions are loaded
+      (!currentAnimationRef.current || !isCurrentlyRunning) && // No animation or finished
+      (timeSinceLastStart > 0.2); // Don't start too frequently
+
+    if (shouldStartNewAnimation) {
       // Apply the movement offset from the animation that just finished
       const finishedAnimation = currentAnimationRef.current;
-      if (finishedAnimation) {
-        const offset = ANIMATION_OFFSETS[finishedAnimation] || 0;
+      if (finishedAnimation && ANIMATION_OFFSETS[finishedAnimation] !== undefined) {
+        const offset = ANIMATION_OFFSETS[finishedAnimation];
 
         // Track consecutive movements
         if (finishedAnimation === "Bounce_Right") {
@@ -231,91 +265,59 @@ export default function Mushroom() {
         } else if (finishedAnimation === "Bounce_Left") {
           consecutiveLeftMoves.current++;
           consecutiveRightMoves.current = 0;
+        } else {
+          // Reset counters for non-movement animations
+          consecutiveRightMoves.current = 0;
+          consecutiveLeftMoves.current = 0;
         }
 
         basePositionX.current += offset;
-
-        // Clamp to bounds
-        basePositionX.current = Math.max(
-          -3,
-          Math.min(3, basePositionX.current),
-        );
-
-        // Apply the new position immediately (teleport)
+        basePositionX.current = Math.max(-3, Math.min(3, basePositionX.current));
         groupRef.current.position.x = basePositionX.current;
-
-        console.log(
-          `${finishedAnimation} finished, moved by ${offset}, now at X:`,
-          basePositionX.current,
-        );
       }
 
-      const isHungry = hunger >= BEHAVIOR.hungerThreshold;
-      const isBored = boredom >= BEHAVIOR.boredomThreshold;
+      // Filter animations based on consecutive move limits
+      let availableAnimations = [...IDLE_ANIMATIONS];
 
-      let nextAnimation: string;
-
-      // Play Restless_Hop if hungry or bored, otherwise random idle
-      if ((isHungry || isBored) && actions[RESTLESS_ANIMATION]) {
-        nextAnimation = RESTLESS_ANIMATION;
-        console.log("Playing restless animation");
-      } else {
-        // Filter animations based on consecutive move limits
-        let availableAnimations = [...IDLE_ANIMATIONS];
-
-        // Can't do more than 3 consecutive rights without a left
-        if (consecutiveRightMoves.current >= 3) {
-          availableAnimations = availableAnimations.filter(
-            (a) => a !== "Bounce_Right",
-          );
-          console.log("Blocking Bounce_Right (3 consecutive)");
-        }
-
-        // Can't do more than 3 consecutive lefts without a right
-        if (consecutiveLeftMoves.current >= 3) {
-          availableAnimations = availableAnimations.filter(
-            (a) => a !== "Bounce_Left",
-          );
-          console.log("Blocking Bounce_Left (3 consecutive)");
-        }
-
-        nextAnimation =
-          availableAnimations[
-            Math.floor(Math.random() * availableAnimations.length)
-          ];
-        console.log(
-          "Playing random idle:",
-          nextAnimation,
-          "from position",
-          basePositionX.current,
-        );
+      if (consecutiveRightMoves.current >= 3) {
+        availableAnimations = availableAnimations.filter((a) => a !== "Bounce_Right");
       }
 
-      // Play next animation (non-looping)
-      if (actions[nextAnimation]) {
-        actions[nextAnimation]
-          ?.reset()
-          .setLoop(THREE.LoopOnce, 1)
-          .fadeIn(0.3)
-          .play();
+      if (consecutiveLeftMoves.current >= 3) {
+        availableAnimations = availableAnimations.filter((a) => a !== "Bounce_Left");
+      }
 
+      // Pick next animation
+      const nextAnimation = availableAnimations[
+        Math.floor(Math.random() * availableAnimations.length)
+      ];
+
+      // Play the animation
+      const action = actions[nextAnimation];
+      if (action) {
+        action.reset().setLoop(THREE.LoopOnce, 1).play();
         currentAnimationRef.current = nextAnimation;
-      } else {
-        console.warn(
-          "Animation not found:",
-          nextAnimation,
-          "Available:",
-          Object.keys(actions),
-        );
+        lastAnimationStartTime.current = t;
       }
     }
   });
 
   return (
-    <group ref={groupRef} onPointerDown={handlePoke}>
-      <group ref={modelRef} scale={0.25}>
-        <Clone object={gltf.scene} castShadow receiveShadow />
-      </group>
-    </group>
+    <>
+      {!isDark && (
+        <group ref={cuteGroupRef} onPointerDown={handlePoke}>
+          <group scale={0.25}>
+            <Clone object={cuteGltf.scene} castShadow receiveShadow />
+          </group>
+        </group>
+      )}
+      {isDark && (
+        <group ref={evilGroupRef} onPointerDown={handlePoke}>
+          <group scale={0.25}>
+            <Clone object={evilGltf.scene} castShadow receiveShadow />
+          </group>
+        </group>
+      )}
+    </>
   );
 }
