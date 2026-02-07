@@ -9,7 +9,9 @@
       "Bash(ls:*)",
       "Bash(grep:*)",
       "Bash(node -e:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nImplement Blender animation system with position tracking\n\n- Integrated 5 Blender animations from GLB file \\(Bounce_Right, Bounce_Left, Hop, Idle_Wobble, Restless_Hop\\)\n- Added position tracking system with 0.31 unit offsets for left/right movement\n- Implemented smart animation switching with consecutive move limits \\(max 3 in same direction\\)\n- Restless_Hop plays when mushroom is hungry or bored\n- Animations stay within ±3 unit bounds\n- Removed debug console logs\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)"
     ]
   }
 }

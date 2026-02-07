@@ -82,6 +82,7 @@ export default function Mushroom() {
 
   const giftGlow = useRef(0);
   const lastGiftRef = useRef(0);
+  const shadowRef = useRef<THREE.Mesh>(null);
 
   const handlePoke = useCallback(() => {
     const now = Date.now();
@@ -116,6 +117,16 @@ export default function Mushroom() {
     // Immediately set the new model's position to match the saved position
     if (groupRef.current) {
       groupRef.current.position.x = basePositionX.current;
+    }
+
+    // Start a new animation immediately for the new model
+    if (actions && Object.keys(actions).length > 0) {
+      const firstAnimation = getRandomIdleAnimation();
+      console.log("Starting animation for new model:", firstAnimation);
+      if (actions[firstAnimation]) {
+        actions[firstAnimation]?.reset().setLoop(THREE.LoopOnce, 1).play();
+        currentAnimationRef.current = firstAnimation;
+      }
     }
   }, [isDark, actions, evolution, groupRef]);
 
@@ -241,6 +252,11 @@ export default function Mushroom() {
       1 / squash / pokeSquish,
     );
 
+    // Update shadow position to follow mushroom
+    if (shadowRef.current) {
+      shadowRef.current.position.x = groupRef.current.position.x;
+    }
+
     // Animation timing and switching
     // Check if we need to start a new animation
     const currentAction = currentAnimationRef.current ? actions[currentAnimationRef.current] : null;
@@ -304,6 +320,21 @@ export default function Mushroom() {
 
   return (
     <>
+      {/* Blob shadow */}
+      <mesh
+        position={[basePositionX.current, -0.98, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        renderOrder={-10}
+      >
+        <circleGeometry args={[0.8, 32]} />
+        <meshBasicMaterial
+          color="#000000"
+          transparent
+          opacity={0.2}
+          depthWrite={false}
+        />
+      </mesh>
+
       {!isDark && (
         <group ref={cuteGroupRef} onPointerDown={handlePoke}>
           <group scale={0.25}>

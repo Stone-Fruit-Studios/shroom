@@ -8,6 +8,12 @@ import JarProjectile from './JarProjectile'
 import GiftIndicator from './GiftIndicator'
 import Fireflies from './Fireflies'
 import Forest from './Forest'
+import ForestBackground from './ForestBackground'
+import FloatingMotes from './FloatingMotes'
+import GodRays from './GodRays'
+import PostEffects from './PostEffects'
+import ForegroundFrame from './ForegroundFrame'
+import MistLayer from './MistLayer'
 import { useGameLoop } from '../hooks/useGameLoop'
 import { useMushroomStore } from '../stores/mushroomStore'
 
@@ -35,9 +41,10 @@ export default function Scene() {
     ambient: null, directional: null, accent: null, fill: null, rim: null,
   })
   const evolution = useMushroomStore((s) => s.evolution)
+  const isDark = evolution === 'dark' || evolution === 'demonic'
 
   useFrame(() => {
-    const mode = evolution === 'dark' ? 'dark' : 'normal'
+    const mode = isDark ? 'dark' : 'normal'
     for (const name of Object.keys(LIGHTS) as LightName[]) {
       const light = refs.current[name]
       if (light) lerpLight(light, LIGHTS[name][mode])
@@ -48,19 +55,33 @@ export default function Scene() {
 
   return (
     <>
+      {/* Background System */}
+      <MistLayer isDark={isDark} />
+      <FloatingMotes
+        count={300}
+        size={0.02}
+        speed={0.3}
+        spread={20}
+        color="#88ddff"
+        isDark={isDark}
+      />
+
+      {/* Existing Lights */}
       <ambientLight ref={setRef('ambient')} intensity={0.4} />
       <directionalLight ref={setRef('directional')} position={[5, 8, 3]} intensity={1.2} castShadow shadow-mapSize={[1024, 1024]} />
       <pointLight ref={setRef('accent')} position={[-3, 2, -2]} intensity={0.3} color="#7b68ee" />
       <pointLight ref={setRef('fill')} position={[3, 3, 2]} intensity={0.6} color="#ffe8c0" distance={12} />
       <pointLight ref={setRef('rim')} position={[-2, 4, 4]} intensity={0.5} color="#a0d8ff" distance={10} />
 
+      {/* Game Elements */}
       <Mushroom />
       <TargetReticle />
       <FoodProjectile />
       <JarProjectile />
       <GiftIndicator />
-      <Fireflies />
-      <Forest />
+
+      {/* Foreground frame for depth */}
+      <ForegroundFrame isDark={isDark} />
     </>
   )
 }
