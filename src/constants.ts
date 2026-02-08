@@ -40,16 +40,9 @@ export const AI = {
 } as const
 
 export const THROW = {
-  speedScale: 0.006,
-  gravity: 6,
-  zSpeed: 3.0,
-  hitRadius: 0.6,
+  hitRadius: 2.2,
   foodScale: 0.18,
-  offscreenY: -4,
-  maxFlight: 3,
   mouthPos: [0, 0.12, 0.3],
-  velocityWindow: 80,
-  dragCeiling: 0.75,
   dragZ: 2.5,
 } as const
 

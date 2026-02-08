@@ -24,7 +24,7 @@ const TUTORIAL_STEPS: Partial<Record<AgeStage, TutorialStep[]>> = {
   1: [
     { callouts: [
       { target: 'feed-meter', label: 'Prevent hunger' },
-      { target: 'food-tray', label: 'Drag & toss to feed' },
+      { target: 'food-tray', label: 'Drag & drop on mushroom to feed' },
     ]},
   ],
   2: [

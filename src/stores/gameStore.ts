@@ -3,7 +3,7 @@ import { useMushroomStore } from './mushroomStore'
 import { useFeedingStore } from './feedingStore'
 import { useFireflyStore } from './fireflyStore'
 
-export type GamePhase = 'playing' | 'gameOver'
+export type GamePhase = 'title' | 'playing' | 'gameOver'
 
 const BEST_TIME_KEY = 'shroom-best-survival-time'
 
@@ -20,11 +20,12 @@ interface GameState {
   setPaused: (paused: boolean) => void
   tickSurvival: (dt: number) => void
   triggerGameOver: () => void
+  startGame: () => void
   restart: () => void
 }
 
 export const useGameStore = create<GameState>()((set, get) => ({
-  phase: 'playing',
+  phase: 'title',
   paused: false,
   survivalTime: 0,
   bestSurvivalTime: loadBestTime(),
@@ -32,6 +33,8 @@ export const useGameStore = create<GameState>()((set, get) => ({
   setPaused: (paused) => set({ paused }),
 
   tickSurvival: (dt) => set((s) => ({ survivalTime: s.survivalTime + dt })),
+
+  startGame: () => set({ phase: 'playing' }),
 
   triggerGameOver: () => {
     const { survivalTime, bestSurvivalTime } = get()

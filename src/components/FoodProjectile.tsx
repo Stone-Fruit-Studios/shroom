@@ -6,7 +6,7 @@ import { useMushroomStore } from '../stores/mushroomStore'
 import { mushroomWorldPos } from '../stores/mushroomPosition'
 import { THROW, FOOD_TYPES, FOOD_TYPE_KEYS } from '../constants'
 import { screenToWorld } from '../utils/camera'
-import type { FoodType, ThrowRequest } from '../types'
+import type { FoodType } from '../types'
 
 const BASE_MOUTH = new THREE.Vector3(...THROW.mouthPos)
 const MOUTH = new THREE.Vector3()
@@ -18,20 +18,21 @@ const GEOMETRIES: Record<FoodType, React.JSX.Element> = {
   barkChip:  <boxGeometry args={[1.5, 0.3, 1]} />,
 }
 
-interface Projectile {
+const GULP_DURATION = 0.25
+
+interface GulpState {
   active: boolean
   foodType: FoodType
-  pos: THREE.Vector3
-  vel: THREE.Vector3
+  start: THREE.Vector3
   elapsed: number
 }
 
 export default function FoodProjectile() {
   const groupRef = useRef<THREE.Group>(null)
   const meshes = useRef<Record<FoodType, THREE.Mesh | null>>({} as Record<FoodType, THREE.Mesh | null>)
-  const proj = useRef<Projectile>({
+  const gulp = useRef<GulpState>({
     active: false, foodType: 'deadLeaf',
-    pos: new THREE.Vector3(), vel: new THREE.Vector3(), elapsed: 0,
+    start: new THREE.Vector3(), elapsed: 0,
   })
   const { camera } = useThree()
 
@@ -40,61 +41,68 @@ export default function FoodProjectile() {
       if (meshes.current[key]) meshes.current[key]!.visible = key === type
   }
 
-  function launch(req: ThrowRequest) {
-    const p = proj.current
-    Object.assign(p, { active: true, foodType: req.foodType, elapsed: 0 })
-    p.pos.copy(screenToWorld(req.nx, req.ny, camera, THROW.dragZ))
-    p.vel.set(req.vx * THROW.speedScale, -req.vy * THROW.speedScale, -THROW.zSpeed)
-    groupRef.current!.position.copy(p.pos)
-    groupRef.current!.rotation.set(0, 0, 0)
-  }
-
-  function resolve(outcome: 'hit' | 'miss') {
-    const foodType = proj.current.foodType
-    proj.current.active = false
-    groupRef.current!.visible = false
-    if (outcome === 'hit') {
-      useMushroomStore.getState().feed(foodType)
-      useFeedingStore.getState().recordHit(foodType)
-    } else {
-      useFeedingStore.getState().recordMiss()
-    }
-  }
-
   useFrame((_, delta) => {
     const g = groupRef.current
     if (!g) return
-    const p = proj.current
+    const gl = gulp.current
+
+    // Gulp animation: food flies to mouth and shrinks
+    if (gl.active) {
+      gl.elapsed += delta
+      const t = Math.min(gl.elapsed / GULP_DURATION, 1)
+      const ease = t * t * (3 - 2 * t) // smoothstep
+      MOUTH.copy(BASE_MOUTH).setX(BASE_MOUTH.x + mushroomWorldPos.x)
+      MOUTH.setY(MOUTH.y + mushroomWorldPos.y)
+      g.visible = true
+      g.position.lerpVectors(gl.start, MOUTH, ease)
+      g.scale.setScalar(THROW.foodScale * (1 - ease * 0.8))
+      g.rotation.x += delta * 6
+      showOnly(gl.foodType)
+      if (t >= 1) {
+        gl.active = false
+        g.visible = false
+        useMushroomStore.getState().feed(gl.foodType)
+        useFeedingStore.getState().recordHit(gl.foodType)
+      }
+      return
+    }
+
     const store = useFeedingStore.getState()
 
+    // Dragging: food follows cursor
     if (store.isDragging && store.dragFoodType) {
-      const pos = screenToWorld(store.dragX / window.innerWidth, store.dragY / window.innerHeight, camera, THROW.dragZ)
+      const pos = screenToWorld(
+        store.dragX / window.innerWidth,
+        store.dragY / window.innerHeight,
+        camera,
+        THROW.dragZ,
+      )
       g.visible = true
       g.position.copy(pos)
-      g.rotation.set(0, 0, 0)
       g.scale.setScalar(THROW.foodScale)
+      g.rotation.set(0, 0, 0)
       showOnly(store.dragFoodType)
       return
     }
 
-    if (!p.active) {
-      const req = store.consumeThrowRequest()
-      if (!req) { g.visible = false; return }
-      launch(req)
+    // Check for drop
+    const req = store.consumeDropRequest()
+    if (req) {
+      MOUTH.copy(BASE_MOUTH).setX(BASE_MOUTH.x + mushroomWorldPos.x)
+      const dropPos = screenToWorld(req.nx, req.ny, camera, MOUTH.z)
+      if (dropPos.distanceTo(MOUTH) < THROW.hitRadius) {
+        // Start gulp animation toward mouth
+        gl.active = true
+        gl.foodType = req.foodType
+        gl.start.copy(screenToWorld(req.nx, req.ny, camera, THROW.dragZ))
+        gl.elapsed = 0
+        return
+      } else {
+        useFeedingStore.getState().recordMiss()
+      }
     }
-    if (!p.active) return
 
-    p.vel.y -= THROW.gravity * delta
-    p.pos.addScaledVector(p.vel, delta)
-    p.elapsed += delta
-    g.visible = true
-    g.position.copy(p.pos)
-    g.rotation.x += delta * 8
-    g.rotation.z += delta * 5
-
-    MOUTH.copy(BASE_MOUTH).setX(BASE_MOUTH.x + mushroomWorldPos.x)
-    if (p.pos.distanceTo(MOUTH) < THROW.hitRadius) return resolve('hit')
-    if (p.pos.y < THROW.offscreenY || p.elapsed > THROW.maxFlight) return resolve('miss')
+    g.visible = false
   })
 
   return (

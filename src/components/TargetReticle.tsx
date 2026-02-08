@@ -13,18 +13,17 @@ export default function TargetReticle() {
   const groupRef = useRef<THREE.Group>(null)
   const ringRef = useRef<THREE.Mesh>(null)
   const glowRef = useRef<THREE.Mesh>(null)
-  const crossRef = useRef<THREE.Group>(null)
 
   useFrame(({ clock }) => {
-    if (!ringRef.current || !glowRef.current || !crossRef.current || !groupRef.current) return
+    if (!ringRef.current || !glowRef.current || !groupRef.current) return
     groupRef.current.position.x = x + mushroomWorldPos.x
-    const active = useFeedingStore.getState().isDragging
+    const { isDragging } = useFeedingStore.getState()
 
-    lerpOpacity(ringRef.current.material as THREE.MeshBasicMaterial, active ? 0.5 : 0)
-    lerpOpacity(glowRef.current.material as THREE.MeshBasicMaterial, active ? 0.12 : 0)
-    crossRef.current.children.forEach((c) =>
-      lerpOpacity((c as THREE.Mesh).material as THREE.MeshBasicMaterial, active ? 0.35 : 0),
-    )
+    const ringTarget = isDragging ? 0.3 : 0
+    const glowTarget = isDragging ? 0.08 : 0
+
+    lerpOpacity(ringRef.current.material as THREE.MeshBasicMaterial, ringTarget)
+    lerpOpacity(glowRef.current.material as THREE.MeshBasicMaterial, glowTarget)
 
     const pulse = 1 + Math.sin(clock.elapsedTime * 4) * 0.06
     ringRef.current.scale.setScalar(pulse)
@@ -32,7 +31,7 @@ export default function TargetReticle() {
   })
 
   const [x, y, z] = THROW.mouthPos
-  const r = THROW.hitRadius
+  const r = THROW.hitRadius * 0.4
   const mat = <meshBasicMaterial color={WHITE} transparent opacity={0} depthWrite={false} depthTest={false} />
 
   return (
@@ -42,19 +41,9 @@ export default function TargetReticle() {
         {mat}
       </mesh>
       <mesh ref={ringRef}>
-        <ringGeometry args={[r - 0.025, r, SEGS]} />
+        <ringGeometry args={[r - 0.01, r, SEGS]} />
         {mat}
       </mesh>
-      <group ref={crossRef}>
-        <mesh>
-          <planeGeometry args={[r * 1.6, 0.02]} />
-          {mat}
-        </mesh>
-        <mesh rotation={[0, 0, Math.PI / 2]}>
-          <planeGeometry args={[r * 1.6, 0.02]} />
-          {mat}
-        </mesh>
-      </group>
     </group>
   )
 }

@@ -10,6 +10,7 @@ import MistButton from './MistButton'
 import FireflyJar from './FireflyJar'
 import TutorialOverlay from './TutorialOverlay'
 import GameOver from './GameOver'
+import TitleScreen from './TitleScreen'
 import styles from './HUD.module.css'
 import { Meter } from '../config'
 import { DEV_MODE } from '../devMode'
@@ -68,6 +69,7 @@ export default function HUD() {
   return (
     <div className={styles.overlay}>
       {DEV_MODE && <div className={styles.devBadge}>DEV: {DEV_MODE}</div>}
+      {phase === 'title' && <TitleScreen />}
       {phase === 'playing' && (
         <>
           <TutorialOverlay />

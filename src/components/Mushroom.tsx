@@ -27,6 +27,27 @@ function buildSpots(count: number, coverage: number) {
 
 const SPOTS = buildSpots(M.spotCount, M.spotCoverage)
 
+// Rounded stem profile — lathe geometry with soft bottom edge
+const STEM_PROFILE = (() => {
+  const [topR, botR, h] = [M.stemArgs[0], M.stemArgs[1], M.stemArgs[2]]
+  const halfH = h / 2
+  const roundR = 0.08
+  const pts: THREE.Vector2[] = []
+  pts.push(new THREE.Vector2(0, halfH))
+  pts.push(new THREE.Vector2(topR, halfH))
+  pts.push(new THREE.Vector2(botR, -halfH + roundR))
+  const steps = 6
+  for (let i = 0; i <= steps; i++) {
+    const angle = (i / steps) * (Math.PI / 2)
+    pts.push(new THREE.Vector2(
+      (botR - roundR) + Math.cos(angle) * roundR,
+      (-halfH + roundR) - Math.sin(angle) * roundR,
+    ))
+  }
+  pts.push(new THREE.Vector2(0, -halfH))
+  return pts
+})()
+
 export default function Mushroom() {
   const groupRef = useRef<THREE.Group>(null)
   const mouthRef = useRef<THREE.Mesh>(null)
@@ -47,6 +68,11 @@ export default function Mushroom() {
   const cheekRightMatRef = useRef<THREE.MeshBasicMaterial>(null)
   const highlightLeftMatRef = useRef<THREE.MeshBasicMaterial>(null)
   const highlightRightMatRef = useRef<THREE.MeshBasicMaterial>(null)
+  const browLeftRef = useRef<THREE.Mesh>(null)
+  const browRightRef = useRef<THREE.Mesh>(null)
+  const browLeftMatRef = useRef<THREE.MeshBasicMaterial>(null)
+  const browRightMatRef = useRef<THREE.MeshBasicMaterial>(null)
+  const capGroupRef = useRef<THREE.Group>(null)
   const currentColors = useRef(
     Object.fromEntries(COLOR_KEYS.map((k) => [k, M.colors.normal[k].clone()])) as Record<keyof typeof M.colors.normal, THREE.Color>,
   )
@@ -73,7 +99,8 @@ export default function Mushroom() {
   const hopTargetX = useRef(0)
   const hopDir = useRef(1)
   const hopFacing = useRef(0)
-  const isTurning = useRef(false)
+  const hopFacingTarget = useRef(0)
+  const nextIdleDuration = useRef(2.0)
 
   const handlePoke = useCallback(() => {
     // If scooping with fireflies, deliver gift instead of poking
@@ -110,10 +137,10 @@ export default function Mushroom() {
     if (lastFeedTime > 0 && lastFeedTime !== lastFeedRef.current) {
       lastFeedRef.current = lastFeedTime
       feedBounce.current = 1
-      mouthOpen.current = 0.4
+      mouthOpen.current = 1.2
       useMushroomStore.getState().reactToEvent('fed')
     }
-    if (mouthOpen.current > 0) mouthOpen.current -= delta
+    if (mouthOpen.current > 0) mouthOpen.current -= delta * 0.8
 
     // Mist detection
     if (lastMistTime > 0 && lastMistTime !== lastMistRef.current) {
@@ -157,21 +184,27 @@ export default function Mushroom() {
       tiltZ = Math.sin(t * hop.swaySpeed) * hop.swayAmt
 
       // Transition to hopping
-      if (phaseTime.current >= hop.idleDuration) {
+      if (phaseTime.current >= nextIdleDuration.current) {
         hopPhase.current = 'hopping'
         phaseTime.current = 0
         hopStartX.current = hopX.current
 
-        // Pick direction — reverse if at range boundary
-        if (Math.abs(hopX.current + hopDir.current * hop.stepSize) > hop.range) {
+        // Pick direction — must reverse at boundary, otherwise 25% chance to flip
+        const wouldExceed = Math.abs(hopX.current + hopDir.current * hop.stepSize) > hop.range
+        if (wouldExceed) {
+          hopDir.current *= -1
+        } else if (Math.random() < 0.25) {
           hopDir.current *= -1
         }
+
+        // Vary step size slightly for natural feel
+        const stepVariation = hop.stepSize * (0.7 + Math.random() * 0.6)
         hopTargetX.current = Math.max(-hop.range, Math.min(hop.range,
-          hopX.current + hopDir.current * hop.stepSize
+          hopX.current + hopDir.current * stepVariation
         ))
 
-        // Roll for turn-away
-        isTurning.current = Math.random() < hop.turnChance
+        // Set facing target toward movement direction
+        hopFacingTarget.current = hopDir.current * 0.35
       }
     }
 
@@ -191,30 +224,24 @@ export default function Mushroom() {
       // Landing squash near ground
       landFactor = Math.pow(1 - Math.sin(frac * Math.PI), 4) * hop.landSquash
 
-      // Turn-away peek
-      if (isTurning.current) {
-        const turnFrac = Math.min(frac / hop.turnDuration, 1)
-        if (turnFrac < 1) {
-          hopFacing.current = Math.sin(turnFrac * Math.PI) * Math.PI * 0.5
-        }
-      }
-
       // Hop finished
       if (frac >= 1) {
         hopX.current = hopTargetX.current
         currentX = hopTargetX.current
         hopPhase.current = 'idle'
         phaseTime.current = 0
-        // Alternate direction every other hop
-        hopDir.current *= -1
+        // Randomize next idle duration for natural rhythm
+        nextIdleDuration.current = hop.idleDuration * (0.6 + Math.random() * 0.8)
       }
     }
 
-    // Ease turn-away back to 0
-    if (hopPhase.current === 'idle') hopFacing.current *= 0.9
+    // Smooth facing: lerp toward target direction each frame
+    hopFacing.current += (hopFacingTarget.current - hopFacing.current) * 0.06
 
-    // Position: hop + interaction overlays
-    groupRef.current.position.y = anim.baseY + hopArcY + feedBounce.current * Math.sin(t * 8) * 0.15 + mistShimmy.current * Math.sin(t * 18) * 0.04
+    // Position: hop + interaction overlays, clamped so bottom never clips ground (y=-0.5)
+    const minY = -0.5 + M.stemArgs[2] / 2 + 0.1 // ground + half stem height + padding for rounded bottom
+    const rawY = anim.baseY + hopArcY + feedBounce.current * Math.sin(t * 8) * 0.15 + mistShimmy.current * Math.sin(t * 18) * 0.04
+    groupRef.current.position.y = Math.max(rawY, minY)
     groupRef.current.position.x = currentX + pokeJolt.current * Math.sin(t * 20) * 0.05 + mistShimmy.current * Math.sin(t * 22) * 0.03
 
     // Write world + screen position for interaction targets
@@ -307,26 +334,44 @@ export default function Mushroom() {
       if (ref.current) ref.current.opacity += (targetHighlightOpacity - ref.current.opacity) * LERP
     }
 
-    // Mouth
+    // Angry brows: visible in dark, hidden in normal
+    const targetBrowOpacity = isDark ? 1.0 : 0
+    for (const ref of [browLeftMatRef, browRightMatRef]) {
+      if (ref.current) ref.current.opacity += (targetBrowOpacity - ref.current.opacity) * LERP
+    }
+    // Angle brows inward (angry V shape)
+    const targetBrowAngle = isDark ? 0.55 : 0
+    if (browLeftRef.current) browLeftRef.current.rotation.z += (-targetBrowAngle - browLeftRef.current.rotation.z) * LERP
+    if (browRightRef.current) browRightRef.current.rotation.z += (targetBrowAngle - browRightRef.current.rotation.z) * LERP
+
+    // Cap widens when dark
+    if (capGroupRef.current) {
+      const targetCapX = isDark ? M.capScale[0] * 1.15 : M.capScale[0]
+      const targetCapZ = isDark ? M.capScale[2] * 1.15 : M.capScale[2]
+      capGroupRef.current.scale.x += (targetCapX - capGroupRef.current.scale.x) * LERP
+      capGroupRef.current.scale.z += (targetCapZ - capGroupRef.current.scale.z) * LERP
+    }
+
+    // Mouth — chewing oscillation when eating
     if (mouthRef.current) {
       const eating = mouthOpen.current > 0
-      const targetY = eating ? 2.5 : M.face.mouth[mode]
-      mouthRef.current.scale.y += (targetY - mouthRef.current.scale.y) * (eating ? 0.2 : LERP)
+      const chew = eating ? 1.5 + Math.abs(Math.sin(t * 14)) * 1.5 : M.face.mouth[mode]
+      mouthRef.current.scale.y += (chew - mouthRef.current.scale.y) * (eating ? 0.3 : LERP)
     }
   })
 
   return (
     <group ref={groupRef} onPointerDown={handlePoke}>
-      {/* Stem */}
+      {/* Stem — lathe with rounded bottom */}
       <mesh castShadow>
-        <cylinderGeometry args={M.stemArgs} />
+        <latheGeometry args={[STEM_PROFILE, 24]} />
         <meshStandardMaterial ref={stemMatRef} color={M.colors.normal.stem} />
       </mesh>
 
       {/* Cap — rounded beret shape, tilted back to show face */}
-      <group position={[0, 0.3, 0]} rotation={[M.capTilt, 0, 0]} scale={M.capScale}>
+      <group ref={capGroupRef} position={[0, 0.3, 0]} rotation={[M.capTilt, 0, 0]} scale={M.capScale}>
         <mesh castShadow>
-          <sphereGeometry args={[M.capRadius, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+          <sphereGeometry args={[M.capRadius, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.58]} />
           <meshStandardMaterial ref={capMatRef} color={M.colors.normal.cap} emissive={M.capEmissive} emissiveIntensity={0} />
         </mesh>
         {SPOTS.map((spot, i) => (
@@ -372,6 +417,16 @@ export default function Mushroom() {
           <meshBasicMaterial ref={highlightRightMatRef} color="white" transparent opacity={1} />
         </mesh>
       </group>
+
+      {/* Angry brows — appear in dark mode */}
+      <mesh ref={browLeftRef} position={[-M.eyeOffsetX, M.eyeY + 0.1, M.eyeZ + 0.02]}>
+        <boxGeometry args={[0.1, 0.025, 0.02]} />
+        <meshBasicMaterial ref={browLeftMatRef} color={M.faceColor} transparent opacity={0} />
+      </mesh>
+      <mesh ref={browRightRef} position={[M.eyeOffsetX, M.eyeY + 0.1, M.eyeZ + 0.02]}>
+        <boxGeometry args={[0.1, 0.025, 0.02]} />
+        <meshBasicMaterial ref={browRightMatRef} color={M.faceColor} transparent opacity={0} />
+      </mesh>
 
       {/* Rosy cheeks */}
       <mesh position={[-M.cheekOffsetX, M.cheekY, M.cheekZ]} scale={[1, 0.85, 0.6]}>

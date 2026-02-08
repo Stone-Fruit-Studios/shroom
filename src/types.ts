@@ -3,11 +3,9 @@ export type AgeStage = 1 | 2 | 3
 
 export type FoodType = 'deadLeaf' | 'rottenLog' | 'compost' | 'barkChip'
 
-export interface ThrowRequest {
+export interface DropRequest {
   nx: number
   ny: number
-  vx: number
-  vy: number
   foodType: FoodType
 }
 

@@ -63,10 +63,10 @@ export const Color = {
   WARM_BEIGE: "#dcc0a8",
   DARK_EYE: "#2a1810",
   BLUSH: "#e88888",
-  NIGHT_BODY: "#121218",
-  DEEP_ROYAL: "#2828aa",
+  NIGHT_BODY: "#5c48a0",
+  DEEP_ROYAL: "#2c1878",
   AMBER_EYE: "#ddaa22",
-  AMBER_GLOW: "#bb8800",
+  AMBER_GLOW: "#886600",
   LIGHT_BLUE_SPOT: "#88bbff",
 
   // -- Bioluminescent environment --
@@ -75,47 +75,47 @@ export const Color = {
   DECO_STEM_NORMAL: "#90c8c0",
   DECO_CAP_NORMAL: "#6848a8",
   DECO_CAP_EMISSIVE: "#5040c0",
-  DECO_STEM_DARK: "#607068",
-  DECO_CAP_DARK: "#384838",
-  DECO_CAP_EMISSIVE_DARK: "#0a0810",
+  DECO_STEM_DARK: "#80b8b0",
+  DECO_CAP_DARK: "#5c40a0",
+  DECO_CAP_EMISSIVE_DARK: "#4838b0",
 
   // Glow plants
   PLANT_STEM_NORMAL: "#2a6858",
   PLANT_BULB_NORMAL: "#40eebb",
-  PLANT_STEM_DARK: "#1a3028",
-  PLANT_BULB_DARK: "#20a088",
+  PLANT_STEM_DARK: "#266050",
+  PLANT_BULB_DARK: "#38d8b0",
 
   // Bioluminescent trees
-  TRUNK_NORMAL: "#2a1e3a",
-  TRUNK_EMISSIVE_NORMAL: "#140a20",
-  CANOPY_NORMAL: "#1a5040",
-  CANOPY_EMISSIVE_NORMAL: "#10a878",
-  TRUNK_DARK: "#181020",
-  TRUNK_EMISSIVE_DARK: "#0a0618",
-  CANOPY_DARK: "#0a1810",
-  CANOPY_EMISSIVE_DARK: "#040808",
+  TRUNK_NORMAL: "#5a4870",
+  TRUNK_EMISSIVE_NORMAL: "#1a5868",
+  CANOPY_NORMAL: "#3848a0",
+  CANOPY_EMISSIVE_NORMAL: "#4068c0",
+  TRUNK_DARK: "#4c4068",
+  TRUNK_EMISSIVE_DARK: "#185060",
+  CANOPY_DARK: "#304090",
+  CANOPY_EMISSIVE_DARK: "#3860b0",
 
   // Sky – brighter enchanted blues
   SKY_NORMAL_TOP: "#142860",
   SKY_NORMAL_MID: "#2858a0",
   SKY_NORMAL_BOT: "#4080b8",
-  SKY_DARK_TOP: "#060810",
-  SKY_DARK_MID: "#0a1018",
-  SKY_DARK_BOT: "#101820",
+  SKY_DARK_TOP: "#122450",
+  SKY_DARK_MID: "#224c90",
+  SKY_DARK_BOT: "#3870a8",
 
   // Ground
   GROUND_NORMAL: "#1e4838",
-  GROUND_DARK: "#101a18",
+  GROUND_DARK: "#1c4032",
   BANK_NORMAL: "#2a5a3a",
-  BANK_DARK: "#141e18",
+  BANK_DARK: "#265234",
 
   // Fog
-  FOG_BLUE: "#182848",
-  FOG_DARK: "#060a0a",
+  FOG_BLUE: "#1c2858",
+  FOG_DARK: "#141c40",
 
   // Smoke / ground particles
   SMOKE_NORMAL: "#6088b0",
-  SMOKE_DARK: "#283838",
+  SMOKE_DARK: "#5880a0",
 
   // Moon
   MOON_COOL: "#d8e8ff",
@@ -128,24 +128,24 @@ export const Color = {
   RIM_BRIGHT_CYAN: "#60d8e0",
 
   // Lighting – dark
-  DARK_COLD_GREY: "#607080",
-  DARK_ACCENT_TEAL: "#285848",
-  DARK_FILL_CADET: "#406068",
-  DARK_RIM_SEAFOAM: "#408878",
+  DARK_COLD_GREY: "#90a0b8",
+  DARK_ACCENT_TEAL: "#5848a0",
+  DARK_FILL_CADET: "#68a8a0",
+  DARK_RIM_SEAFOAM: "#50c0c0",
 
   // Cloud colors – sky (3 brightness tiers)
   CLOUD_SKY_BRIGHT: "#5088c0",
   CLOUD_SKY_MID: "#4078b0",
   CLOUD_SKY_DIM: "#3068a0",
-  CLOUD_SKY_DARK: "#0a1828",
-  CLOUD_SKY_DARK_B: "#0c1a28",
-  CLOUD_SKY_DARK_C: "#081420",
+  CLOUD_SKY_DARK: "#3868a0",
+  CLOUD_SKY_DARK_B: "#3068a0",
+  CLOUD_SKY_DARK_C: "#2858a0",
 
   // Cloud colors – fog
-  CLOUD_FOG_NORMAL: "#3068a0",
-  CLOUD_FOG_NORMAL_B: "#2858a0",
-  CLOUD_FOG_DARK: "#0a1818",
-  CLOUD_FOG_DARK_B: "#081418",
+  CLOUD_FOG_NORMAL: "#4858a8",
+  CLOUD_FOG_NORMAL_B: "#3848b0",
+  CLOUD_FOG_DARK: "#3848a0",
+  CLOUD_FOG_DARK_B: "#3040a0",
 } as const;
 
 export const Mushroom = {
@@ -162,7 +162,7 @@ export const Mushroom = {
       stem: new THREE.Color(Color.NIGHT_BODY),
       spots: new THREE.Color(Color.LAVENDER),
       eyes: new THREE.Color(Color.AMBER_EYE),
-      pupils: new THREE.Color('#1a0800'),
+      pupils: new THREE.Color(Color.BLACK),
     },
   },
   emissive: {
@@ -174,7 +174,7 @@ export const Mushroom = {
     dark: {
       spots: new THREE.Color(Color.VIOLET),
       eyes: new THREE.Color(Color.AMBER_GLOW),
-      pupils: new THREE.Color(Color.AMBER_GLOW),
+      pupils: new THREE.Color(Color.BLACK),
     },
   },
   faceColor: Color.DARK_EYE,
@@ -189,19 +189,19 @@ export const Mushroom = {
   spotCoverage: 0.65,
   stemArgs: [0.28, 0.35, 0.75, 16] as const,
   eyeOffsetX: 0.14,
-  eyeY: 0.15,
+  eyeY: 0.08,
   eyeZ: 0.32,
   eyeRadius: 0.09,
   pupilRadius: 0.055,
   highlightRadius: 0.025,
   highlightOffset: [0.025, 0.03, 0.04] as const,
-  cheekRadius: 0.05,
+  cheekRadius: 0.06,
   cheekColor: Color.BLUSH,
   cheekOffsetX: 0.2,
-  cheekY: 0.02,
-  cheekZ: 0.34,
+  cheekY: -0.04,
+  cheekZ: 0.22,
   browY: 0.34,
-  browSize: [0.1, 0.02, 0.02] as const,
+  browSize: [0.14, 0.035, 0.025] as const,
   mouthPos: [0, -0.02, 0.34] as const,
   mouthArgs: [0.04, 0.012, 16, 32, Math.PI] as const,
   face: {
@@ -215,8 +215,8 @@ export const Mushroom = {
         hopDuration: 0.45,
         idleDuration: 2.0,
         height: 0.15,
-        range: 1.8,
-        stepSize: 0.6,
+        range: 0.8,
+        stepSize: 0.4,
         landSquash: 0.06,
         idleBounceSpeed: 3,
         idleBounceAmt: 0.02,
@@ -233,8 +233,8 @@ export const Mushroom = {
         hopDuration: 0.3,
         idleDuration: 0.8,
         height: 0.08,
-        range: 1.2,
-        stepSize: 0.4,
+        range: 0.6,
+        stepSize: 0.3,
         landSquash: 0.12,
         idleBounceSpeed: 2,
         idleBounceAmt: 0.01,
@@ -299,8 +299,8 @@ export const Env = {
       canopy: new THREE.Color(Color.CANOPY_EMISSIVE_DARK),
     },
   },
-  trunkEmissiveIntensity: { normal: 0.08, dark: 0.03 },
-  canopyEmissiveIntensity: { normal: 0.4, dark: 0.05 },
+  trunkEmissiveIntensity: { normal: 0.25, dark: 0.20 },
+  canopyEmissiveIntensity: { normal: 0.4, dark: 0.30 },
   skyColors: {
     normal: {
       top: new THREE.Color(Color.SKY_NORMAL_TOP),
@@ -321,19 +321,19 @@ export const Env = {
     normal: new THREE.Color(Color.BANK_NORMAL),
     dark: new THREE.Color(Color.BANK_DARK),
   },
-  fogColor: Color.FOG_BLUE,
-  fogDensity: { normal: 0.028, dark: 0.04 },
+  fogColor: { normal: Color.FOG_BLUE, dark: Color.FOG_DARK },
+  fogDensity: { normal: 0.045, dark: 0.09 },
   smokeColor: { normal: Color.SMOKE_NORMAL, dark: Color.SMOKE_DARK },
   smokeOpacity: { normal: 0.25, dark: 0.25 },
   moonColor: new THREE.Color(Color.MOON_COOL),
   moonLightColor: Color.MOON_LIGHT_COOL,
-  moonOpacity: { normal: 0.9, dark: 0.15 },
-  moonLightIntensity: { normal: 1.5, dark: 0.05 },
+  moonOpacity: { normal: 0.9, dark: 0.7 },
+  moonLightIntensity: { normal: 1.5, dark: 1.0 },
   moonPosition: [4, 5, -6] as const,
   moonRadius: 1.5,
   skyRadius: 50,
   groundRadius: 10,
-  glowLightThreshold: 1.0,
+  glowLightThreshold: 0.9,
   sparkles: {
     count: 60,
     size: 14,
@@ -345,22 +345,22 @@ export const Env = {
 
 export const Lighting = {
   colors: {
-    ambient: { normal: { intensity: 0.9 }, dark: { intensity: 0.35 } },
+    ambient: { normal: { intensity: 0.9 }, dark: { intensity: 0.72 } },
     directional: {
       normal: { intensity: 2.0, color: new THREE.Color(Color.LIGHT_BLUE_WHITE) },
-      dark: { intensity: 0.8, color: new THREE.Color(Color.DARK_COLD_GREY) },
+      dark: { intensity: 1.6, color: new THREE.Color(Color.DARK_COLD_GREY) },
     },
     accent: {
       normal: { intensity: 1.0, color: new THREE.Color(Color.ACCENT_INDIGO) },
-      dark: { intensity: 1.2, color: new THREE.Color(Color.DARK_ACCENT_TEAL) },
+      dark: { intensity: 1.0, color: new THREE.Color(Color.DARK_ACCENT_TEAL) },
     },
     fill: {
       normal: { intensity: 1.2, color: new THREE.Color(Color.FILL_WARM_CYAN) },
-      dark: { intensity: 0.5, color: new THREE.Color(Color.DARK_FILL_CADET) },
+      dark: { intensity: 1.0, color: new THREE.Color(Color.DARK_FILL_CADET) },
     },
     rim: {
       normal: { intensity: 1.2, color: new THREE.Color(Color.RIM_BRIGHT_CYAN) },
-      dark: { intensity: 0.7, color: new THREE.Color(Color.DARK_RIM_SEAFOAM) },
+      dark: { intensity: 1.0, color: new THREE.Color(Color.DARK_RIM_SEAFOAM) },
     },
   } as const,
   positions: {
