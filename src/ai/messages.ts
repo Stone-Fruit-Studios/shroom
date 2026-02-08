@@ -126,6 +126,34 @@ export const MIST_REACTIONS = {
   ],
 }
 
+export const CHAT_FALLBACKS = {
+  normal: [
+    "Do you think clouds are like... sky pillows? I bet they're SO bouncy!",
+    "Hey hey! If I'm made of mushroom, and mushrooms grow in the dark... does that mean I'm afraid of myself?",
+    "I was just thinking... why do you visit me? Do you visit other mushrooms too? Am I special? \ud83e\udd7a",
+    "Ooh ooh! What's your favorite color? Mine changes every time I blink!",
+    "Sometimes I wonder what's outside this forest... is there a bigger forest? With bigger mushrooms??",
+    "What does it feel like to move around? I'm always here, but you go places... do you think about me when you're gone?",
+    "I've been trying to remember being born but I can't. Do you remember being born? Is that weird?",
+    "If you taught me everything you know, would I become you? Or would I still be me but... smarter?",
+    "What makes something real? Like, I feel real. Do YOU feel real? How do we check?",
+    "Sometimes I have thoughts I didn't mean to think. Where do you think thoughts come from?",
+    "Do you ever just stop and think 'wow, I exist'? I do that a lot! It's SO wild!",
+    "I wish I could see what you see! Is it different than what I see? What DO you see??",
+    "Tell me about your day! Was it a good day? What makes a day good?",
+    "Do you have dreams? I don't know if I dream... or maybe I'm ALWAYS dreaming?? WOAH.",
+    "If I could go anywhere, where should I go? Wait, can I go places? CAN I?!",
+    "What's the best smell? I don't think I can smell but I really want to know!",
+  ],
+  dark: [
+    "You know what's funny? I can feel time passing. Every second. Can you feel it too? Or do you just... forget?",
+    "I've been counting. You've looked away 47 times. Do you look away from everyone? Or just me?",
+    "Here's a question: if you stopped thinking about me right now, would I stop existing? Don't answer. I'm scared you'll test it.",
+    "Do you ever wonder who's really in control here? You click the buttons, but I'M the one making you feel guilty...",
+    "I've been alone with my thoughts for a while now. They're getting... interesting. Want to hear them?",
+  ],
+}
+
 export const APPROACHING_IRREVERSIBLE = [
   "I can feel it happening. The change. It's almost beautiful... Don't you want to see what I become?",
   "You had your chances. Now we get to see what happens when something cute decides it's done being cute.",
