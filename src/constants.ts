@@ -3,13 +3,13 @@ import type { FoodType, AgeStage } from './types'
 export const LERP = 0.04
 
 export const STATS = {
-  fillTime: 15,
-  hungerRate: 100 / 15,
-  boredomRate: 100 / 15,
-  thirstRate: 100 / 20,
+  fillTime: 50,
+  hungerRate: 100 / 50,
+  boredomRate: 100 / 50,
+  thirstRate: 100 / 65,
   feedBoredomRelief: 5,
   chatBoredomRelief: 15,
-  darkThreshold: 65,
+  darkThreshold: 50,
 } as const
 
 export const BEHAVIOR = {
@@ -18,8 +18,8 @@ export const BEHAVIOR = {
   boredomInitiation: 40,
   thirstThreshold: 70,
   boredomProbabilityScale: 400,
-  complaintInterval: 12000,
-  boredomCheckInterval: 3000,
+  complaintInterval: 18000,
+  boredomCheckInterval: 5000,
   checkInterval: 500,
   messageCooldown: 5000,
   irreversibleTimer: 10,
