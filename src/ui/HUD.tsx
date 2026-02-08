@@ -3,6 +3,7 @@ import { useGameStore } from '../stores/gameStore'
 import { useMushroomStore } from '../stores/mushroomStore'
 import { useMushroomBehavior } from '../hooks/useMushroomBehavior'
 import { useTTS } from '../hooks/useTTS'
+import { useMusic } from '../hooks/useMusic'
 import FoodTray from './FoodTray'
 import ChatBox from './ChatBox'
 import SpeechBubble from './SpeechBubble'
@@ -53,6 +54,7 @@ export default function HUD() {
 
   useMushroomBehavior()
   useTTS()
+  useMusic()
 
   const feed = hungerMeter(hunger)
   const mist = thirstMeter(thirst)
