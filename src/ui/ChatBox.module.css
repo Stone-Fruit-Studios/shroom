@@ -26,7 +26,7 @@
 
 .userMsg {
   align-self: flex-end;
-  background: rgba(100, 108, 255, 0.4);
+  background: rgba(60, 50, 120, 0.4);
   color: #fff;
   padding: 6px 12px;
   border-radius: 12px 12px 2px 12px;
@@ -38,7 +38,7 @@
 
 .shroomMsg {
   align-self: flex-start;
-  background: rgba(45, 90, 39, 0.4);
+  background: rgba(20, 60, 80, 0.4);
   color: #fff;
   padding: 6px 12px;
   border-radius: 12px 12px 12px 2px;
@@ -74,14 +74,14 @@
   font-weight: var(--fw-semibold);
   font-family: system-ui, sans-serif;
   color: #fff;
-  background: rgba(45, 90, 39, 0.6);
+  background: rgba(20, 60, 80, 0.6);
   border: none;
   cursor: pointer;
   transition: background 0.2s;
 }
 
 .sendBtn:hover:not(:disabled) {
-  background: rgba(45, 90, 39, 1);
+  background: rgba(25, 75, 100, 1);
 }
 
 .sendBtn:disabled {

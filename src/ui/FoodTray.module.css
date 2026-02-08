@@ -3,7 +3,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: rgba(45, 90, 39, 0.8);
+  background: rgba(20, 60, 80, 0.8);
   border: 2px solid rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
@@ -24,7 +24,7 @@
 }
 
 .foodItem:hover:not(.disabled):not(.pickedUp) {
-  background: rgba(45, 90, 39, 1);
+  background: rgba(25, 75, 100, 1);
   transform: scale(1.1);
   animation: none;
 }
@@ -84,8 +84,8 @@
   position: absolute;
   top: -8px;
   right: -8px;
-  background: rgba(120, 220, 120, 0.9);
-  color: rgba(10, 30, 10, 0.95);
+  background: rgba(80, 200, 200, 0.9);
+  color: rgba(5, 20, 30, 0.95);
   font-size: 8px;
   font-family: var(--font-family);
   font-weight: var(--fw-bold);
@@ -108,12 +108,12 @@
   bottom: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%) scale(0.9);
-  background: rgba(10, 25, 10, 0.95);
-  border: 1px solid rgba(140, 220, 140, 0.3);
+  background: rgba(8, 20, 30, 0.95);
+  border: 1px solid rgba(80, 200, 200, 0.3);
   border-radius: 6px;
   padding: 2px 7px;
   font-size: 9px;
-  color: rgba(180, 255, 180, 0.9);
+  color: rgba(160, 230, 230, 0.9);
   font-family: var(--font-family);
   font-weight: var(--fw-semibold);
   white-space: nowrap;

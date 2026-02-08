@@ -3,12 +3,14 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useMushroomStore } from '../stores/mushroomStore'
 import { useFireflyStore } from '../stores/fireflyStore'
+import { mushroomWorldPos } from '../stores/mushroomPosition'
 import { LERP, BEHAVIOR, POKE } from '../constants'
 import { pickRandom } from '../utils/helpers'
 import { POKE_MESSAGES } from '../ai/messages'
 import { Mushroom as M } from '../config'
 
 const COLOR_KEYS = Object.keys(M.colors.normal) as (keyof typeof M.colors.normal)[]
+const _projVec = new THREE.Vector3()
 
 function buildSpots(count: number, coverage: number) {
   const golden = Math.PI * (3 - Math.sqrt(5))
@@ -28,13 +30,23 @@ const SPOTS = buildSpots(M.spotCount, M.spotCoverage)
 export default function Mushroom() {
   const groupRef = useRef<THREE.Group>(null)
   const mouthRef = useRef<THREE.Mesh>(null)
-  const browLeftRef = useRef<THREE.Mesh>(null)
-  const browRightRef = useRef<THREE.Mesh>(null)
   const capMatRef = useRef<THREE.MeshStandardMaterial>(null)
   const stemMatRef = useRef<THREE.MeshStandardMaterial>(null)
   const spotsMatRef = useRef<THREE.MeshStandardMaterial>(null)
   const eyeLeftMatRef = useRef<THREE.MeshStandardMaterial>(null)
   const eyeRightMatRef = useRef<THREE.MeshStandardMaterial>(null)
+  const eyeLeftMeshRef = useRef<THREE.Mesh>(null)
+  const eyeRightMeshRef = useRef<THREE.Mesh>(null)
+  const pupilLeftGroupRef = useRef<THREE.Group>(null)
+  const pupilRightGroupRef = useRef<THREE.Group>(null)
+  const pupilLeftMeshRef = useRef<THREE.Mesh>(null)
+  const pupilRightMeshRef = useRef<THREE.Mesh>(null)
+  const pupilLeftMatRef = useRef<THREE.MeshStandardMaterial>(null)
+  const pupilRightMatRef = useRef<THREE.MeshStandardMaterial>(null)
+  const cheekLeftMatRef = useRef<THREE.MeshBasicMaterial>(null)
+  const cheekRightMatRef = useRef<THREE.MeshBasicMaterial>(null)
+  const highlightLeftMatRef = useRef<THREE.MeshBasicMaterial>(null)
+  const highlightRightMatRef = useRef<THREE.MeshBasicMaterial>(null)
   const currentColors = useRef(
     Object.fromEntries(COLOR_KEYS.map((k) => [k, M.colors.normal[k].clone()])) as Record<keyof typeof M.colors.normal, THREE.Color>,
   )
@@ -52,6 +64,16 @@ export default function Mushroom() {
 
   const giftGlow = useRef(0)
   const lastGiftRef = useRef(0)
+
+  // Hop animation state machine
+  const hopPhase = useRef<'idle' | 'hopping'>('idle')
+  const phaseTime = useRef(0)
+  const hopX = useRef(0)
+  const hopStartX = useRef(0)
+  const hopTargetX = useRef(0)
+  const hopDir = useRef(1)
+  const hopFacing = useRef(0)
+  const isTurning = useRef(false)
 
   const handlePoke = useCallback(() => {
     // If scooping with fireflies, deliver gift instead of poking
@@ -77,10 +99,10 @@ export default function Mushroom() {
     store.receiveMessage(msg)
   }, [])
 
-  useFrame(({ clock }, delta) => {
+  useFrame(({ clock, camera, size }, delta) => {
     if (!groupRef.current) return
     const t = clock.elapsedTime
-    const { evolution, hunger, boredom, lastFeedTime, lastMistTime, lastPokeTime, lastGiftTime } = useMushroomStore.getState()
+    const { evolution, hunger, lastFeedTime, lastMistTime, lastPokeTime, lastGiftTime } = useMushroomStore.getState()
     const isDark = evolution === 'dark'
     const mode = isDark ? 'dark' : 'normal'
 
@@ -116,23 +138,99 @@ export default function Mushroom() {
 
     // Decay animations
     const anim = hunger >= BEHAVIOR.hungerThreshold ? M.anim.hungry : M.anim.happy
+    const hop = anim.hop
     feedBounce.current *= M.decay.feedBounce
     mistShimmy.current *= M.decay.mistShimmy
     pokeJolt.current *= M.decay.pokeJolt
     giftGlow.current *= M.decay.giftGlow
 
-    // Position: base bounce + feed bounce + poke jolt + mist shiver
-    groupRef.current.position.y = anim.baseY + Math.sin(t * anim.bounceSpeed) * anim.bounceAmt + feedBounce.current * Math.sin(t * 8) * 0.15 + mistShimmy.current * Math.sin(t * 18) * 0.04
-    groupRef.current.position.x = pokeJolt.current * Math.sin(t * 20) * 0.05 + mistShimmy.current * Math.sin(t * 22) * 0.03
+    // Hop state machine
+    phaseTime.current += delta
+    let hopArcY = 0
+    let currentX = hopX.current
+    let tiltZ = 0
+    let landFactor = 0
 
-    // Rotation: sway + talk wobble + mist shimmy
-    const swayAnim = boredom >= BEHAVIOR.boredomThreshold ? M.anim.hungry : M.anim.happy
-    groupRef.current.rotation.z =
-      Math.sin(t * swayAnim.swaySpeed) * swayAnim.swayAmt +
-      mistShimmy.current * Math.sin(t * 15) * 0.2
+    if (hopPhase.current === 'idle') {
+      // Gentle bounce in place
+      hopArcY = Math.sin(t * hop.idleBounceSpeed) * hop.idleBounceAmt
+      tiltZ = Math.sin(t * hop.swaySpeed) * hop.swayAmt
 
-    // Squash/stretch + poke squish
-    const squash = 1 + Math.sin(t * anim.bounceSpeed) * 0.02
+      // Transition to hopping
+      if (phaseTime.current >= hop.idleDuration) {
+        hopPhase.current = 'hopping'
+        phaseTime.current = 0
+        hopStartX.current = hopX.current
+
+        // Pick direction — reverse if at range boundary
+        if (Math.abs(hopX.current + hopDir.current * hop.stepSize) > hop.range) {
+          hopDir.current *= -1
+        }
+        hopTargetX.current = Math.max(-hop.range, Math.min(hop.range,
+          hopX.current + hopDir.current * hop.stepSize
+        ))
+
+        // Roll for turn-away
+        isTurning.current = Math.random() < hop.turnChance
+      }
+    }
+
+    if (hopPhase.current === 'hopping') {
+      const frac = Math.min(phaseTime.current / hop.hopDuration, 1)
+
+      // Parabolic arc
+      hopArcY = Math.sin(frac * Math.PI) * hop.height
+
+      // Smoothstep lateral interpolation
+      const ss = frac * frac * (3 - 2 * frac)
+      currentX = hopStartX.current + (hopTargetX.current - hopStartX.current) * ss
+
+      // Body tilt into movement direction
+      tiltZ = hopDir.current * hop.tiltAmt * Math.sin(frac * Math.PI)
+
+      // Landing squash near ground
+      landFactor = Math.pow(1 - Math.sin(frac * Math.PI), 4) * hop.landSquash
+
+      // Turn-away peek
+      if (isTurning.current) {
+        const turnFrac = Math.min(frac / hop.turnDuration, 1)
+        if (turnFrac < 1) {
+          hopFacing.current = Math.sin(turnFrac * Math.PI) * Math.PI * 0.5
+        }
+      }
+
+      // Hop finished
+      if (frac >= 1) {
+        hopX.current = hopTargetX.current
+        currentX = hopTargetX.current
+        hopPhase.current = 'idle'
+        phaseTime.current = 0
+        // Alternate direction every other hop
+        hopDir.current *= -1
+      }
+    }
+
+    // Ease turn-away back to 0
+    if (hopPhase.current === 'idle') hopFacing.current *= 0.9
+
+    // Position: hop + interaction overlays
+    groupRef.current.position.y = anim.baseY + hopArcY + feedBounce.current * Math.sin(t * 8) * 0.15 + mistShimmy.current * Math.sin(t * 18) * 0.04
+    groupRef.current.position.x = currentX + pokeJolt.current * Math.sin(t * 20) * 0.05 + mistShimmy.current * Math.sin(t * 22) * 0.03
+
+    // Write world + screen position for interaction targets
+    mushroomWorldPos.x = currentX
+    mushroomWorldPos.y = anim.baseY + hopArcY
+    _projVec.set(currentX, anim.baseY + hopArcY + 0.3, 0.3)
+    _projVec.project(camera)
+    mushroomWorldPos.screenX = ((_projVec.x + 1) / 2) * size.width
+    mushroomWorldPos.screenY = ((1 - _projVec.y) / 2) * size.height
+
+    // Rotation: tilt + mist shimmy + turn-away
+    groupRef.current.rotation.z = tiltZ + mistShimmy.current * Math.sin(t * 15) * 0.2
+    groupRef.current.rotation.y = hopFacing.current
+
+    // Squash/stretch: landing squash + poke squish
+    const squash = 1 + landFactor
     const pokeSquish = 1 - pokeJolt.current * 0.08
     groupRef.current.scale.set(1 / squash / pokeSquish, squash * pokeSquish, 1 / squash / pokeSquish)
 
@@ -156,17 +254,65 @@ export default function Mushroom() {
       ref.current.emissive.lerp(targetEmissive.eyes, LERP)
     }
 
+    // Eye scale: round in normal, narrow slits in dark
+    const targetEyeScaleY = isDark ? 0.35 : 1
+    const targetEyeScaleX = isDark ? 1.3 : 1
+    for (const ref of [eyeLeftMeshRef, eyeRightMeshRef]) {
+      if (!ref.current) continue
+      ref.current.scale.y += (targetEyeScaleY - ref.current.scale.y) * LERP
+      ref.current.scale.x += (targetEyeScaleX - ref.current.scale.x) * LERP
+    }
+
+    // Pupil gaze — sharpened waves that snap through center, dwell at edges
+    const gazeSpeed = isDark ? 1.5 : 1
+    const gazeAmtX = isDark ? 0.024 : 0.018
+    const gazeAmtY = isDark ? 0.016 : 0.012
+    // sharpness < 1 = more time at extremes, quick snap through center
+    const sx = Math.sin(t * 0.7 * gazeSpeed)
+    const sy = Math.sin(t * 0.5 * gazeSpeed + 1.0)
+    const sx2 = Math.sin(t * 1.3 * gazeSpeed + 2.0)
+    const sy2 = Math.cos(t * 0.9 * gazeSpeed + 3.0)
+    const sharp = (v: number, p: number) => Math.sign(v) * Math.pow(Math.abs(v), p)
+    const gazeX = sharp(sx, 0.4) * gazeAmtX + sharp(sx2, 0.4) * gazeAmtX * 0.4
+    const gazeY = sharp(sy, 0.4) * gazeAmtY + sharp(sy2, 0.4) * gazeAmtY * 0.5
+    for (const [ref, baseX] of [[pupilLeftGroupRef, -M.eyeOffsetX], [pupilRightGroupRef, M.eyeOffsetX]] as const) {
+      if (!ref.current) continue
+      ref.current.position.x = baseX + gazeX
+      ref.current.position.y = M.eyeY + gazeY
+    }
+
+    // Pupil color + emissive
+    for (const ref of [pupilLeftMatRef, pupilRightMatRef]) {
+      if (!ref.current) continue
+      ref.current.color.copy(currentColors.current.pupils)
+      ref.current.emissive.lerp(targetEmissive.pupils, LERP)
+    }
+
+    // Pupil scale: match sclera slit in dark mode
+    for (const ref of [pupilLeftMeshRef, pupilRightMeshRef]) {
+      if (!ref.current) continue
+      ref.current.scale.y += (targetEyeScaleY - ref.current.scale.y) * LERP
+      ref.current.scale.x += (targetEyeScaleX - ref.current.scale.x) * LERP
+    }
+
+    // Cheek opacity: visible in normal, hidden in dark
+    const targetCheekOpacity = isDark ? 0 : 0.6
+    for (const ref of [cheekLeftMatRef, cheekRightMatRef]) {
+      if (ref.current) ref.current.opacity += (targetCheekOpacity - ref.current.opacity) * LERP
+    }
+
+    // Highlight opacity: visible in normal, hidden in dark
+    const targetHighlightOpacity = isDark ? 0 : 1
+    for (const ref of [highlightLeftMatRef, highlightRightMatRef]) {
+      if (ref.current) ref.current.opacity += (targetHighlightOpacity - ref.current.opacity) * LERP
+    }
+
     // Mouth
     if (mouthRef.current) {
       const eating = mouthOpen.current > 0
       const targetY = eating ? 2.5 : M.face.mouth[mode]
       mouthRef.current.scale.y += (targetY - mouthRef.current.scale.y) * (eating ? 0.2 : LERP)
     }
-
-    // Eyebrows
-    const browTarget = M.face.brow[mode]
-    if (browLeftRef.current) browLeftRef.current.rotation.z += (browTarget - browLeftRef.current.rotation.z) * LERP
-    if (browRightRef.current) browRightRef.current.rotation.z += (-browTarget - browRightRef.current.rotation.z) * LERP
   })
 
   return (
@@ -177,8 +323,8 @@ export default function Mushroom() {
         <meshStandardMaterial ref={stemMatRef} color={M.colors.normal.stem} />
       </mesh>
 
-      {/* Cap */}
-      <group position={[0, 0.3, 0]} rotation={[M.capTilt, 0, 0]}>
+      {/* Cap — rounded beret shape, tilted back to show face */}
+      <group position={[0, 0.3, 0]} rotation={[M.capTilt, 0, 0]} scale={M.capScale}>
         <mesh castShadow>
           <sphereGeometry args={[M.capRadius, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
           <meshStandardMaterial ref={capMatRef} color={M.colors.normal.cap} emissive={M.capEmissive} emissiveIntensity={0} />
@@ -193,24 +339,48 @@ export default function Mushroom() {
         ))}
       </group>
 
-      {/* Eyes */}
-      <mesh position={[-M.eyeOffsetX, M.eyeY, M.eyeZ]}>
-        <sphereGeometry args={[M.eyeRadius, 8, 8]} />
+      {/* Eyes — base disc */}
+      <mesh ref={eyeLeftMeshRef} position={[-M.eyeOffsetX, M.eyeY, M.eyeZ]} scale={[1, 1, 0.3]}>
+        <sphereGeometry args={[M.eyeRadius, 16, 16]} />
         <meshStandardMaterial ref={eyeLeftMatRef} color={M.faceColor} />
       </mesh>
-      <mesh position={[M.eyeOffsetX, M.eyeY, M.eyeZ]}>
-        <sphereGeometry args={[M.eyeRadius, 8, 8]} />
+      <mesh ref={eyeRightMeshRef} position={[M.eyeOffsetX, M.eyeY, M.eyeZ]} scale={[1, 1, 0.3]}>
+        <sphereGeometry args={[M.eyeRadius, 16, 16]} />
         <meshStandardMaterial ref={eyeRightMatRef} color={M.faceColor} />
       </mesh>
 
-      {/* Eyebrows */}
-      <mesh ref={browLeftRef} position={[-M.eyeOffsetX, M.browY, M.eyeZ]} rotation={[0, 0, M.face.brow.normal]}>
-        <boxGeometry args={M.browSize} />
-        <meshStandardMaterial color={M.faceColor} />
+      {/* Left pupil + highlight */}
+      <group ref={pupilLeftGroupRef} position={[-M.eyeOffsetX, M.eyeY, M.eyeZ + 0.01]}>
+        <mesh ref={pupilLeftMeshRef} scale={[1, 1, 0.3]}>
+          <sphereGeometry args={[M.pupilRadius, 16, 16]} />
+          <meshStandardMaterial ref={pupilLeftMatRef} color={M.faceColor} />
+        </mesh>
+        <mesh position={[M.highlightOffset[0], M.highlightOffset[1], M.highlightOffset[2]]}>
+          <sphereGeometry args={[M.highlightRadius, 8, 8]} />
+          <meshBasicMaterial ref={highlightLeftMatRef} color="white" transparent opacity={1} />
+        </mesh>
+      </group>
+
+      {/* Right pupil + highlight */}
+      <group ref={pupilRightGroupRef} position={[M.eyeOffsetX, M.eyeY, M.eyeZ + 0.01]}>
+        <mesh ref={pupilRightMeshRef} scale={[1, 1, 0.3]}>
+          <sphereGeometry args={[M.pupilRadius, 16, 16]} />
+          <meshStandardMaterial ref={pupilRightMatRef} color={M.faceColor} />
+        </mesh>
+        <mesh position={[M.highlightOffset[0], M.highlightOffset[1], M.highlightOffset[2]]}>
+          <sphereGeometry args={[M.highlightRadius, 8, 8]} />
+          <meshBasicMaterial ref={highlightRightMatRef} color="white" transparent opacity={1} />
+        </mesh>
+      </group>
+
+      {/* Rosy cheeks */}
+      <mesh position={[-M.cheekOffsetX, M.cheekY, M.cheekZ]} scale={[1, 0.85, 0.6]}>
+        <sphereGeometry args={[M.cheekRadius, 12, 8]} />
+        <meshBasicMaterial ref={cheekLeftMatRef} color={M.cheekColor} transparent opacity={0.6} />
       </mesh>
-      <mesh ref={browRightRef} position={[M.eyeOffsetX, M.browY, M.eyeZ]} rotation={[0, 0, -M.face.brow.normal]}>
-        <boxGeometry args={M.browSize} />
-        <meshStandardMaterial color={M.faceColor} />
+      <mesh position={[M.cheekOffsetX, M.cheekY, M.cheekZ]} scale={[1, 0.85, 0.6]}>
+        <sphereGeometry args={[M.cheekRadius, 12, 8]} />
+        <meshBasicMaterial ref={cheekRightMatRef} color={M.cheekColor} transparent opacity={0.6} />
       </mesh>
 
       {/* Mouth */}
@@ -218,7 +388,6 @@ export default function Mushroom() {
         <torusGeometry args={M.mouthArgs} />
         <meshStandardMaterial color={M.faceColor} />
       </mesh>
-
     </group>
   )
 }

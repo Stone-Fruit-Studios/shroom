@@ -30,12 +30,12 @@
 }
 
 .dark {
-  background: rgba(74, 26, 107, 0.9);
+  background: rgba(50, 15, 80, 0.9);
   color: #fff;
 }
 
 .dark::after {
-  border-top-color: rgba(74, 26, 107, 0.9);
+  border-top-color: rgba(50, 15, 80, 0.9);
 }
 
 .fadeOut {

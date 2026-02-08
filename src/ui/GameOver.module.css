@@ -54,7 +54,7 @@
   font-weight: var(--fw-semibold);
   font-family: var(--font-family);
   color: #fff;
-  background: rgba(45, 90, 39, 0.8);
+  background: rgba(20, 60, 80, 0.8);
   border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: var(--radius-lg);
   cursor: pointer;
@@ -62,7 +62,7 @@
 }
 
 .restartBtn:hover {
-  background: rgba(45, 90, 39, 1);
+  background: rgba(25, 75, 100, 1);
   transform: scale(1.05);
 }
 

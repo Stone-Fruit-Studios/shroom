@@ -3,11 +3,13 @@ import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useFeedingStore } from '../stores/feedingStore'
 import { useMushroomStore } from '../stores/mushroomStore'
+import { mushroomWorldPos } from '../stores/mushroomPosition'
 import { THROW, FOOD_TYPES, FOOD_TYPE_KEYS } from '../constants'
 import { screenToWorld } from '../utils/camera'
 import type { FoodType, ThrowRequest } from '../types'
 
-const MOUTH = new THREE.Vector3(...THROW.mouthPos)
+const BASE_MOUTH = new THREE.Vector3(...THROW.mouthPos)
+const MOUTH = new THREE.Vector3()
 
 const GEOMETRIES: Record<FoodType, React.JSX.Element> = {
   deadLeaf:  <sphereGeometry args={[1, 8, 4]} />,
@@ -90,6 +92,7 @@ export default function FoodProjectile() {
     g.rotation.x += delta * 8
     g.rotation.z += delta * 5
 
+    MOUTH.copy(BASE_MOUTH).setX(BASE_MOUTH.x + mushroomWorldPos.x)
     if (p.pos.distanceTo(MOUTH) < THROW.hitRadius) return resolve('hit')
     if (p.pos.y < THROW.offscreenY || p.elapsed > THROW.maxFlight) return resolve('miss')
   })

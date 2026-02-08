@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useFeedingStore } from '../stores/feedingStore'
+import { mushroomWorldPos } from '../stores/mushroomPosition'
 import { THROW } from '../constants'
 import { lerpOpacity } from '../utils/helpers'
 
@@ -9,12 +10,14 @@ const WHITE = new THREE.Color('#ffffff')
 const SEGS = 48
 
 export default function TargetReticle() {
+  const groupRef = useRef<THREE.Group>(null)
   const ringRef = useRef<THREE.Mesh>(null)
   const glowRef = useRef<THREE.Mesh>(null)
   const crossRef = useRef<THREE.Group>(null)
 
   useFrame(({ clock }) => {
-    if (!ringRef.current || !glowRef.current || !crossRef.current) return
+    if (!ringRef.current || !glowRef.current || !crossRef.current || !groupRef.current) return
+    groupRef.current.position.x = x + mushroomWorldPos.x
     const active = useFeedingStore.getState().isDragging
 
     lerpOpacity(ringRef.current.material as THREE.MeshBasicMaterial, active ? 0.5 : 0)
@@ -33,7 +36,7 @@ export default function TargetReticle() {
   const mat = <meshBasicMaterial color={WHITE} transparent opacity={0} depthWrite={false} depthTest={false} />
 
   return (
-    <group position={[x, y, z + 0.05]} renderOrder={100}>
+    <group ref={groupRef} position={[x, y, z + 0.05]} renderOrder={100}>
       <mesh ref={glowRef}>
         <circleGeometry args={[r * 1.2, SEGS]} />
         {mat}

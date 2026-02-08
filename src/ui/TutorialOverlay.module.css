@@ -31,7 +31,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  border: 1.5px solid rgba(140, 220, 140, 0.7);
+  border: 1.5px solid rgba(80, 210, 210, 0.7);
   flex-shrink: 0;
   animation: pulse 1.4s ease-in-out infinite;
 }
@@ -44,16 +44,16 @@
 .stem {
   width: 12px;
   height: 1px;
-  background: rgba(140, 220, 140, 0.4);
+  background: rgba(80, 210, 210, 0.4);
   flex-shrink: 0;
 }
 
 .label {
-  background: rgba(20, 40, 20, 0.92);
-  border: 1px solid rgba(140, 220, 140, 0.25);
+  background: rgba(10, 25, 35, 0.92);
+  border: 1px solid rgba(80, 210, 210, 0.25);
   border-radius: 20px;
   padding: 3px 10px;
-  color: rgba(200, 255, 200, 0.95);
+  color: rgba(180, 240, 240, 0.95);
   font-size: var(--fs-xs);
   font-family: var(--font-family);
   font-weight: var(--fw-semibold);
@@ -81,8 +81,8 @@
 .stemV {
   width: 12px;
   height: 18px;
-  border-left: 1px solid rgba(140, 220, 140, 0.4);
-  border-bottom: 1px solid rgba(140, 220, 140, 0.4);
+  border-left: 1px solid rgba(80, 210, 210, 0.4);
+  border-bottom: 1px solid rgba(80, 210, 210, 0.4);
   border-bottom-left-radius: 6px;
   flex-shrink: 0;
 }
@@ -91,7 +91,7 @@
 
 .backdropCelebrate {
   composes: backdrop;
-  background: radial-gradient(circle at 50% 40%, rgba(80, 180, 80, 0.18) 0%, rgba(0, 0, 0, 0.7) 70%);
+  background: radial-gradient(circle at 50% 40%, rgba(40, 120, 160, 0.18) 0%, rgba(0, 0, 0, 0.7) 70%);
 }
 
 .celebration {
@@ -113,12 +113,12 @@
   font-family: var(--font-family);
   font-size: var(--fs-display);
   font-weight: var(--fw-bold);
-  color: rgba(200, 255, 200, 0.95);
+  color: rgba(180, 240, 240, 0.95);
   text-transform: uppercase;
   letter-spacing: 3px;
   text-shadow:
-    0 0 12px rgba(120, 220, 120, 0.6),
-    0 0 30px rgba(80, 200, 80, 0.3);
+    0 0 12px rgba(80, 210, 220, 0.6),
+    0 0 30px rgba(60, 180, 200, 0.3);
   animation: titleBounce 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   margin: 0;
 }
@@ -133,7 +133,7 @@
   font-family: var(--font-family);
   font-size: var(--fs-lg);
   font-weight: var(--fw-semibold);
-  color: rgba(180, 240, 180, 0.8);
+  color: rgba(160, 230, 230, 0.8);
   letter-spacing: 0.5px;
   margin-top: 8px;
   animation: subtitleFade 0.4s ease-out 0.3s both;
@@ -165,22 +165,22 @@
 
 .sparkles::before {
   box-shadow:
-    -40px 0 0 rgba(180, 255, 180, 0.9),
-     35px -10px 0 rgba(255, 240, 160, 0.8),
-    -20px -20px 0 rgba(160, 255, 200, 0.7),
-     50px 5px 0 rgba(200, 255, 180, 0.85),
-    -55px -15px 0 rgba(255, 255, 180, 0.75),
-     15px -5px 0 rgba(180, 240, 180, 0.9);
+    -40px 0 0 rgba(100, 230, 230, 0.9),
+     35px -10px 0 rgba(255, 220, 130, 0.8),
+    -20px -20px 0 rgba(140, 120, 220, 0.7),
+     50px 5px 0 rgba(80, 210, 210, 0.85),
+    -55px -15px 0 rgba(255, 230, 150, 0.75),
+     15px -5px 0 rgba(120, 100, 200, 0.9);
 }
 
 .sparkles::after {
   box-shadow:
-     25px -12px 0 rgba(180, 255, 180, 0.8),
-    -45px 8px 0 rgba(255, 240, 160, 0.7),
-     60px -8px 0 rgba(160, 255, 200, 0.85),
-    -30px -25px 0 rgba(200, 255, 180, 0.7),
-     10px 10px 0 rgba(255, 255, 180, 0.8),
-    -60px -5px 0 rgba(180, 240, 180, 0.75);
+     25px -12px 0 rgba(100, 230, 230, 0.8),
+    -45px 8px 0 rgba(255, 220, 130, 0.7),
+     60px -8px 0 rgba(140, 120, 220, 0.85),
+    -30px -25px 0 rgba(80, 210, 210, 0.7),
+     10px 10px 0 rgba(255, 230, 150, 0.8),
+    -60px -5px 0 rgba(120, 100, 200, 0.75);
   animation-delay: 1.2s;
 }
 

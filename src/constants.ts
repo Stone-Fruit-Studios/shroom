@@ -86,7 +86,7 @@ export const FIREFLY = {
   driftRadius: 0.5,
   respawnDelay: 5,
   fadeSpeed: 3,
-  color: { normal: '#ffe4b5', dark: '#44ddbb' },
+  color: { normal: '#ffe4b5', dark: '#30bb99' },
   spawnBounds: {
     x: [-3, 3],
     y: [0.3, 2.2],

@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 import { useFireflyStore } from '../stores/fireflyStore'
+import { mushroomWorldPos } from '../stores/mushroomPosition'
 import { THROW } from '../constants'
 import { lerpOpacity } from '../utils/helpers'
 import styles from './GiftIndicator.module.css'
@@ -12,12 +13,14 @@ const SEGS = 32
 const GIFT_LERP_RATE = 0.08
 
 export default function GiftIndicator() {
+  const groupRef = useRef<THREE.Group>(null)
   const ringRef = useRef<THREE.Mesh>(null)
   const glowRef = useRef<THREE.Mesh>(null)
   const htmlRef = useRef<HTMLDivElement>(null)
 
   useFrame(({ clock }) => {
-    if (!ringRef.current || !glowRef.current) return
+    if (!ringRef.current || !glowRef.current || !groupRef.current) return
+    groupRef.current.position.x = x + mushroomWorldPos.x
     const { jarCount, phase, pressing } = useFireflyStore.getState()
     const show = jarCount > 0 && phase === 'scooping' && !pressing
 
@@ -43,7 +46,7 @@ export default function GiftIndicator() {
   const ringMat = <meshBasicMaterial color={WARM} transparent opacity={0} depthWrite={false} depthTest={false} />
 
   return (
-    <group position={[x, y, z + 0.04]} renderOrder={99}>
+    <group ref={groupRef} position={[x, y, z + 0.04]} renderOrder={99}>
       <mesh ref={glowRef}>
         <circleGeometry args={[r * 1.1, SEGS]} />
         {ringMat}

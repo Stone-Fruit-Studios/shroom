@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useMushroomStore } from '../stores/mushroomStore'
 import { useGameStore } from '../stores/gameStore'
+import { mushroomWorldPos } from '../stores/mushroomPosition'
 import { MIST } from '../constants'
 import classNames from 'classnames'
 import styles from './MistButton.module.css'
@@ -86,13 +87,13 @@ export default function MistButton() {
     if (now - lastMistRef.current < MIST.cooldownMs) return
     lastMistRef.current = now
 
-    const centerX = window.innerWidth / 2
-    const centerY = window.innerHeight / 2
-    const dist = Math.hypot(x - centerX, y - centerY)
+    const shroomX = mushroomWorldPos.screenX || window.innerWidth / 2
+    const shroomY = mushroomWorldPos.screenY || window.innerHeight / 2
+    const dist = Math.hypot(x - shroomX, y - shroomY)
     if (dist < MIST.hitRadius) {
       useMushroomStore.getState().mist()
       const splashId = nextIdRef.current++
-      setSplashes((prev) => [...prev, { id: splashId, x: centerX, y: centerY }])
+      setSplashes((prev) => [...prev, { id: splashId, x: shroomX, y: shroomY }])
       setTimeout(() => {
         setSplashes((prev) => prev.filter((s) => s.id !== splashId))
       }, 800)
