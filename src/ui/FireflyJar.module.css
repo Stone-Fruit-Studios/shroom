@@ -28,6 +28,21 @@
   touch-action: none;
 }
 
+.jarGlb {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 0;
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  touch-action: none;
+}
+
 .empty { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
 
 .emoji {
@@ -96,4 +111,19 @@
 @keyframes hintFadeIn {
   from { opacity: 0; transform: translateX(-50%) translateY(6px); }
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.scoopOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+  cursor: none;
+  pointer-events: none;
+}
+
+.jarCursor {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1000;
+  transform: translate(-50%, -50%);
 }

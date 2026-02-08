@@ -9,7 +9,12 @@
       "Bash(ls:*)",
       "Bash(grep:*)",
       "Bash(node -e:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(git restore:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(curl:*)",
+      "Bash(npx vite build:*)",
+      "Bash(lsof:*)"
     ]
   }
 }

@@ -101,7 +101,7 @@ export const JAR = {
 export const STAGES: Record<AgeStage, { food: FoodType[]; stats: { hunger: boolean; thirst: boolean; boredom: boolean } }> = {
   1: { food: ['barkChip'], stats: { hunger: true, thirst: false, boredom: false } },
   2: { food: ['barkChip', 'deadLeaf', 'rottenLog'], stats: { hunger: true, thirst: true, boredom: false } },
-  3: { food: ['barkChip', 'deadLeaf', 'rottenLog', 'compost'], stats: { hunger: true, thirst: true, boredom: true } },
+  3: { food: ['barkChip', 'deadLeaf', 'rottenLog'], stats: { hunger: true, thirst: true, boredom: true } },
 }
 
 export const STAGE_THRESHOLDS = {

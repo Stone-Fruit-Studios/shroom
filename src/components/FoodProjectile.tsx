@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
+import { useGLTF, Clone } from '@react-three/drei'
 import * as THREE from 'three'
 import { useFeedingStore } from '../stores/feedingStore'
 import { useMushroomStore } from '../stores/mushroomStore'
@@ -11,12 +12,12 @@ import type { FoodType } from '../types'
 const BASE_MOUTH = new THREE.Vector3(...THROW.mouthPos)
 const MOUTH = new THREE.Vector3()
 
-const GEOMETRIES: Record<FoodType, React.JSX.Element> = {
-  deadLeaf:  <sphereGeometry args={[1, 8, 4]} />,
-  rottenLog: <cylinderGeometry args={[0.4, 0.4, 2, 8]} />,
-  compost:   <dodecahedronGeometry args={[0.8]} />,
-  barkChip:  <boxGeometry args={[1.5, 0.3, 1]} />,
+const SIMPLE_GEOMETRIES: Partial<Record<FoodType, React.JSX.Element>> = {
+  compost: <dodecahedronGeometry args={[0.8]} />,
 }
+
+const GLB_FOOD_KEYS: FoodType[] = ['barkChip', 'deadLeaf', 'rottenLog']
+const SIMPLE_FOOD_KEYS = FOOD_TYPE_KEYS.filter((k) => !GLB_FOOD_KEYS.includes(k))
 
 const GULP_DURATION = 0.25
 
@@ -29,16 +30,19 @@ interface GulpState {
 
 export default function FoodProjectile() {
   const groupRef = useRef<THREE.Group>(null)
-  const meshes = useRef<Record<FoodType, THREE.Mesh | null>>({} as Record<FoodType, THREE.Mesh | null>)
+  const items = useRef<Record<FoodType, THREE.Object3D | null>>({} as Record<FoodType, THREE.Object3D | null>)
   const gulp = useRef<GulpState>({
     active: false, foodType: 'deadLeaf',
     start: new THREE.Vector3(), elapsed: 0,
   })
   const { camera } = useThree()
+  const barkGltf = useGLTF('/bark.glb')
+  const leafGltf = useGLTF('/leaf.glb')
+  const logGltf = useGLTF('/log.glb')
 
   function showOnly(type: FoodType | null) {
     for (const key of FOOD_TYPE_KEYS)
-      if (meshes.current[key]) meshes.current[key]!.visible = key === type
+      if (items.current[key]) items.current[key]!.visible = key === type
   }
 
   useFrame((_, delta) => {
@@ -107,12 +111,21 @@ export default function FoodProjectile() {
 
   return (
     <group ref={groupRef} visible={false} scale={THROW.foodScale}>
-      {FOOD_TYPE_KEYS.map((type) => (
-        <mesh key={type} ref={(el) => { meshes.current[type] = el }} visible={false}>
-          {GEOMETRIES[type]}
+      {SIMPLE_FOOD_KEYS.map((type) => (
+        <mesh key={type} ref={(el) => { items.current[type] = el }} visible={false}>
+          {SIMPLE_GEOMETRIES[type]}
           <meshStandardMaterial color={FOOD_TYPES[type].color} />
         </mesh>
       ))}
+      <group ref={(el) => { items.current.barkChip = el }} visible={false} scale={0.08} rotation={[0.4, 0.3, 0]}>
+        <Clone object={barkGltf.scene} />
+      </group>
+      <group ref={(el) => { items.current.deadLeaf = el }} visible={false} scale={15.0} rotation={[0.4, 0.3, 0]}>
+        <Clone object={leafGltf.scene} />
+      </group>
+      <group ref={(el) => { items.current.rottenLog = el }} visible={false} scale={5.0} rotation={[0.4, 0.3, 0]}>
+        <Clone object={logGltf.scene} />
+      </group>
     </group>
   )
 }
