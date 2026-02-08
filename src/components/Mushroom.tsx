@@ -2,6 +2,7 @@ import { useRef, useCallback } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useMushroomStore } from '../stores/mushroomStore'
+import { useFireflyStore } from '../stores/fireflyStore'
 import { LERP, BEHAVIOR, POKE } from '../constants'
 import { pickRandom } from '../utils/helpers'
 import { POKE_MESSAGES, FIREFLY_MESSAGES } from '../ai/messages'
@@ -53,6 +54,14 @@ export default function Mushroom() {
   const lastGiftRef = useRef(0)
 
   const handlePoke = useCallback(() => {
+    // If scooping with fireflies, deliver gift instead of poking
+    const fireflyState = useFireflyStore.getState()
+    if (fireflyState.phase === 'scooping' && fireflyState.jarCount > 0) {
+      const count = fireflyState.deliverGift()
+      useMushroomStore.getState().giveFireflies(count)
+      return
+    }
+
     const now = Date.now()
     const store = useMushroomStore.getState()
 

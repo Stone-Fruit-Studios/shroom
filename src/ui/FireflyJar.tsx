@@ -1,53 +1,56 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useFireflyStore } from '../stores/fireflyStore'
 import classNames from 'classnames'
-import { useDragListeners } from '../hooks/useDragListeners'
 import styles from './FireflyJar.module.css'
 
 export default function FireflyJar() {
-  const { phase, jarCount, giftActive, coolingDown } = useFireflyStore()
-  const disabled = giftActive || coolingDown
-  const isDragging = phase !== 'idle'
+  const { phase, jarCount, coolingDown, pressing } = useFireflyStore()
+  const disabled = coolingDown
+  const active = phase === 'scooping'
   const hasFireflies = jarCount > 0
-
-  // Aggressive glow — starts visible at 1, saturates fast
-  const glowSize = 8 + jarCount * 8
-  const glowAlpha = Math.min(1, 0.3 + jarCount * 0.15)
-  const outerSize = glowSize * 2.5
-  const bgAlpha = Math.min(0.6, jarCount * 0.08)
+  const jarRef = useRef<HTMLDivElement>(null)
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     e.preventDefault()
-    useFireflyStore.getState().startDrag(e.clientX, e.clientY)
+    useFireflyStore.getState().toggleJar(e.clientX, e.clientY)
   }, [])
 
-  const onPointerMove = useCallback((e: PointerEvent) => {
-    useFireflyStore.getState().updateDrag(e.clientX, e.clientY)
-  }, [])
+  // Window-level listeners for scooping drag (only active when phase === 'scooping')
+  useEffect(() => {
+    if (!active) return
 
-  const onPointerUp = useCallback((e: PointerEvent) => {
-    useFireflyStore.getState().endDrag(e.clientX, e.clientY)
-  }, [])
+    const onDown = (e: PointerEvent) => {
+      // Ignore clicks on UI elements (jar button, food tray, etc.)
+      if (jarRef.current?.contains(e.target as Node)) return
+      if ((e.target as Element)?.closest?.('[data-hud-action]')) return
+      useFireflyStore.getState().startScoop(e.clientX, e.clientY)
+    }
+    const onMove = (e: PointerEvent) => {
+      useFireflyStore.getState().updateDrag(e.clientX, e.clientY)
+    }
+    const onUp = () => {
+      useFireflyStore.getState().endScoop()
+    }
 
-  useDragListeners(isDragging, onPointerMove, onPointerUp)
-
-  const glowStyle = hasFireflies ? {
-    boxShadow: `0 0 ${glowSize}px rgba(255, 180, 60, ${glowAlpha}), 0 0 ${outerSize}px rgba(255, 140, 30, ${glowAlpha * 0.5}), inset 0 0 12px rgba(255, 200, 80, ${bgAlpha})`,
-    background: `rgba(${90 + jarCount * 12}, ${75 + jarCount * 10}, 40, 0.8)`,
-    borderColor: `rgba(255, 200, 80, ${Math.min(0.7, 0.2 + jarCount * 0.1)})`,
-  } : undefined
+    window.addEventListener('pointerdown', onDown)
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    return () => {
+      window.removeEventListener('pointerdown', onDown)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+  }, [active])
 
   return (
     <>
-      <div className={styles.wrapper}>
+      <div className={styles.wrapper} data-hud-action>
         <div
+          ref={jarRef}
           className={classNames(
             styles.jar,
             disabled && styles.empty,
-            isDragging && styles.dragging,
-            hasFireflies && !isDragging && styles.glowing,
           )}
-          style={!isDragging ? glowStyle : undefined}
           onPointerDown={onPointerDown}
         >
           <span className={styles.emoji}>🫙</span>
@@ -55,14 +58,17 @@ export default function FireflyJar() {
         </div>
         <span className={styles.label}>Fireflies</span>
       </div>
-      {phase === 'scooping' && !hasFireflies && (
-        <div className={styles.hint}>Catch fireflies!</div>
+      {active && !pressing && !hasFireflies && (
+        <div className={styles.hint}>Press &amp; hold near fireflies to catch</div>
       )}
-      {phase === 'scooping' && hasFireflies && (
-        <div className={styles.hint}>Drop on mushroom!</div>
+      {active && pressing && !hasFireflies && (
+        <div className={styles.hint}>Move over fireflies to catch!</div>
       )}
-      {phase === 'gifting' && (
-        <div className={styles.hint}>Drop on mushroom!</div>
+      {active && !pressing && hasFireflies && (
+        <div className={styles.hint}>Tap mushroom to gift!</div>
+      )}
+      {active && pressing && hasFireflies && (
+        <div className={styles.hint}>Catching... ({jarCount})</div>
       )}
     </>
   )

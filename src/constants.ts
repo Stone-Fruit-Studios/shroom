@@ -1,4 +1,4 @@
-import type { FoodType } from './types'
+import type { FoodType, AgeStage } from './types'
 
 export const LERP = 0.04
 
@@ -100,6 +100,17 @@ export const JAR = {
   dragZ: 2.5,
   cooldownMs: 1000,
   jarScale: 0.12,
+} as const
+
+export const STAGES: Record<AgeStage, { food: FoodType[]; stats: { hunger: boolean; thirst: boolean; boredom: boolean } }> = {
+  1: { food: ['barkChip'], stats: { hunger: true, thirst: false, boredom: false } },
+  2: { food: ['barkChip', 'deadLeaf', 'rottenLog'], stats: { hunger: true, thirst: true, boredom: false } },
+  3: { food: ['barkChip', 'deadLeaf', 'rottenLog', 'compost'], stats: { hunger: true, thirst: true, boredom: true } },
+}
+
+export const STAGE_THRESHOLDS = {
+  feedsToStage2: 4,
+  mistsToStage3: 10,
 } as const
 
 export const TTS = {

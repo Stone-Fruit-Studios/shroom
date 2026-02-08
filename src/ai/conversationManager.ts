@@ -1,7 +1,7 @@
-import { BEHAVIOR } from '../constants'
+import { BEHAVIOR, STAGES } from '../constants'
 import { HUNGER_MESSAGES, THIRST_MESSAGES, BOREDOM_MESSAGES, APPROACHING_IRREVERSIBLE } from './messages'
 import { pickRandom } from '../utils/helpers'
-import type { EvolutionState } from '../types'
+import type { EvolutionState, AgeStage } from '../types'
 
 type Mode = 'normal' | 'dark'
 
@@ -11,23 +11,24 @@ class ConversationManager {
   private lastBoredCheck = 0
   private lastMessage = 0
 
-  update(now: number, hunger: number, boredom: number, thirst: number, evolution: EvolutionState, isConversing: boolean, neglectTimer: number): string | null {
+  update(now: number, hunger: number, boredom: number, thirst: number, evolution: EvolutionState, isConversing: boolean, neglectTimer: number, stage: AgeStage): string | null {
     if (now - this.lastMessage < BEHAVIOR.messageCooldown) return null
     const mode: Mode = evolution === 'dark' ? 'dark' : 'normal'
+    const active = STAGES[stage].stats
 
-    if (hunger >= BEHAVIOR.hungerThreshold && now - this.lastComplaint >= BEHAVIOR.complaintInterval) {
+    if (active.hunger && hunger >= BEHAVIOR.hungerThreshold && now - this.lastComplaint >= BEHAVIOR.complaintInterval) {
       this.lastComplaint = now
       this.lastMessage = now
       return pickRandom(HUNGER_MESSAGES[mode])
     }
 
-    if (thirst >= BEHAVIOR.thirstThreshold && now - this.lastThirstComplaint >= BEHAVIOR.complaintInterval) {
+    if (active.thirst && thirst >= BEHAVIOR.thirstThreshold && now - this.lastThirstComplaint >= BEHAVIOR.complaintInterval) {
       this.lastThirstComplaint = now
       this.lastMessage = now
       return pickRandom(THIRST_MESSAGES[mode])
     }
 
-    if (boredom >= BEHAVIOR.boredomInitiation && !isConversing && now - this.lastBoredCheck >= BEHAVIOR.boredomCheckInterval) {
+    if (active.boredom && boredom >= BEHAVIOR.boredomInitiation && !isConversing && now - this.lastBoredCheck >= BEHAVIOR.boredomCheckInterval) {
       this.lastBoredCheck = now
       if (Math.random() < (boredom - BEHAVIOR.boredomInitiation) / BEHAVIOR.boredomProbabilityScale) {
         this.lastMessage = now

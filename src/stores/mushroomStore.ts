@@ -2,8 +2,10 @@ import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
 import { chat } from '../ai/aiService'
 import { buildSystemPrompt } from '../ai/prompts'
-import { STATS, MIST, JAR, FOOD_TYPES } from '../constants'
-import type { EvolutionState, FoodType, Message } from '../types'
+import { STATS, MIST, JAR, FOOD_TYPES, STAGES } from '../constants'
+import { DEV } from '../devMode'
+import { usePlayerStore } from './playerStore'
+import type { EvolutionState, FoodType, Message, AgeStage } from '../types'
 
 interface MushroomState {
   hunger: number
@@ -19,6 +21,9 @@ interface MushroomState {
   lastPokeTime: number
   lastGiftTime: number
   lastGiftCount: number
+  stage: AgeStage
+  totalFeeds: number
+  totalMists: number
   feed: (foodType: FoodType) => void
   mist: () => void
   poke: () => void
@@ -43,6 +48,15 @@ const INITIAL: Omit<MushroomState, 'feed' | 'mist' | 'poke' | 'giveFireflies' | 
   lastPokeTime: 0,
   lastGiftTime: 0,
   lastGiftCount: 0,
+  stage: 1 as AgeStage,
+  totalFeeds: 0,
+  totalMists: 0,
+}
+
+function checkStageUp(stage: AgeStage, totalFeeds: number, totalMists: number): AgeStage {
+  if (stage === 1 && totalFeeds >= DEV.feedsToStage2) return 2
+  if (stage === 2 && totalMists >= DEV.mistsToStage3) return 3
+  return stage
 }
 
 function resolveEvolution(hunger: number, current: EvolutionState): EvolutionState {
@@ -56,16 +70,28 @@ export const useMushroomStore = create<MushroomState>()(
   subscribeWithSelector((set, get) => ({
     ...INITIAL,
 
-    feed: (foodType) => set((s) => ({
-      hunger: Math.max(0, s.hunger - FOOD_TYPES[foodType].hungerRelief),
-      boredom: Math.max(0, s.boredom - STATS.feedBoredomRelief),
-      lastFeedTime: Date.now(),
-    })),
+    feed: (foodType) => set((s) => {
+      const totalFeeds = s.totalFeeds + 1
+      const stage = checkStageUp(s.stage, totalFeeds, s.totalMists)
+      return {
+        hunger: Math.max(0, s.hunger - FOOD_TYPES[foodType].hungerRelief),
+        boredom: STAGES[s.stage].stats.boredom ? Math.max(0, s.boredom - STATS.feedBoredomRelief) : s.boredom,
+        lastFeedTime: Date.now(),
+        totalFeeds,
+        stage,
+      }
+    }),
 
-    mist: () => set((s) => ({
-      thirst: Math.max(0, s.thirst - MIST.thirstRelief),
-      lastMistTime: Date.now(),
-    })),
+    mist: () => set((s) => {
+      const totalMists = s.totalMists + 1
+      const stage = checkStageUp(s.stage, s.totalFeeds, totalMists)
+      return {
+        thirst: Math.max(0, s.thirst - MIST.thirstRelief),
+        lastMistTime: Date.now(),
+        totalMists,
+        stage,
+      }
+    }),
 
     poke: () => set({ lastPokeTime: Date.now() }),
 
@@ -80,6 +106,7 @@ export const useMushroomStore = create<MushroomState>()(
 
     sendMessage: async (text) => {
       const { conversationHistory, hunger, boredom, evolution } = get()
+      const { playerName } = usePlayerStore.getState()
       const history = [...conversationHistory, { role: 'user' as const, content: text }]
       set({ conversationHistory: history, isConversing: true })
 
@@ -87,7 +114,7 @@ export const useMushroomStore = create<MushroomState>()(
       try {
         response = await chat({
           messages: history,
-          systemPrompt: buildSystemPrompt({ hunger, boredom, evolution }),
+          systemPrompt: buildSystemPrompt({ hunger, boredom, evolution, playerName }),
         })
       } catch {
         response = "Hmm, my thoughts feel fuzzy right now... say that again?"
@@ -110,9 +137,11 @@ export const useMushroomStore = create<MushroomState>()(
 
     tick: (dt) => set((s) => {
       if (s.evolution === 'demonic') return s
-      const hunger = Math.min(100, s.hunger + STATS.hungerRate * dt)
-      const boredom = Math.min(100, s.boredom + STATS.boredomRate * dt)
-      const thirst = Math.min(100, s.thirst + STATS.thirstRate * dt)
+      const scaledDt = dt * DEV.statRateMultiplier
+      const active = STAGES[s.stage].stats
+      const hunger = active.hunger ? Math.min(100, s.hunger + STATS.hungerRate * scaledDt) : s.hunger
+      const thirst = active.thirst ? Math.min(100, s.thirst + STATS.thirstRate * scaledDt) : s.thirst
+      const boredom = active.boredom ? Math.min(100, s.boredom + STATS.boredomRate * scaledDt) : s.boredom
       return { hunger, boredom, thirst, evolution: resolveEvolution(hunger, s.evolution) }
     }),
 

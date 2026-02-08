@@ -1,4 +1,5 @@
 export type EvolutionState = 'normal' | 'dark' | 'demonic'
+export type AgeStage = 1 | 2 | 3
 
 export type FoodType = 'deadLeaf' | 'rottenLog' | 'compost' | 'barkChip'
 

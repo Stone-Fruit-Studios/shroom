@@ -5,6 +5,7 @@ interface PromptContext {
   hunger: number
   boredom: number
   evolution: EvolutionState
+  playerName?: string | null
 }
 
 const NORMAL_PROMPT = `You are a sentient, psychedelic mushroom living in a magical forest. You are curious, philosophical, and genuinely trying to understand existence - but you approach these questions with childlike wonder and enthusiasm rather than anxiety.
@@ -79,6 +80,10 @@ You are currently ${hungerDesc} hungry and ${boredomDesc} bored.`
   if (ctx.evolution === 'dark') {
     const fullness = 100 - ctx.hunger
     prompt += `\nYou are at ${Math.round(fullness)}% fullness. You need feeding to recover.`
+  }
+
+  if (ctx.playerName) {
+    prompt += `\nThe player's name is ${ctx.playerName}. You can use it naturally in conversation.`
   }
 
   return prompt

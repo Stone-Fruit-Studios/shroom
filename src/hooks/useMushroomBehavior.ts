@@ -7,13 +7,14 @@ import { BEHAVIOR } from '../constants'
 export function useMushroomBehavior() {
   useEffect(() => {
     const interval = setInterval(() => {
-      if (useGameStore.getState().phase !== 'playing') return
+      const gameState = useGameStore.getState()
+      if (gameState.phase !== 'playing' || gameState.paused) return
 
-      const { hunger, boredom, thirst, evolution, isConversing, receiveMessage } =
+      const { hunger, boredom, thirst, evolution, isConversing, receiveMessage, stage } =
         useMushroomStore.getState()
 
       const message = conversationManager.update(
-        Date.now(), hunger, boredom, thirst, evolution, isConversing, 0,
+        Date.now(), hunger, boredom, thirst, evolution, isConversing, 0, stage,
       )
 
       if (message) receiveMessage(message)

@@ -157,7 +157,7 @@ export default function Fireflies() {
     if (!g) return
     const t = state.clock.elapsedTime
     const store = useFireflyStore.getState()
-    const isScooping = store.phase === 'scooping'
+    const isScooping = store.phase === 'scooping' && store.pressing
     const isDark = evolution === 'dark'
     const colorKey = isDark ? 'dark' : 'normal'
 

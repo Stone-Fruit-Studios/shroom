@@ -1,16 +1,21 @@
 import { useCallback } from 'react'
 import { useFeedingStore } from '../stores/feedingStore'
 import { useMushroomStore } from '../stores/mushroomStore'
-import { FOOD_TYPES, FOOD_TYPE_KEYS } from '../constants'
+import { useGameStore } from '../stores/gameStore'
+import { FOOD_TYPES, STAGES } from '../constants'
 import classNames from 'classnames'
 import { useDragListeners } from '../hooks/useDragListeners'
-import type { FoodType } from '../types'
+import type { AgeStage, FoodType } from '../types'
 import styles from './FoodTray.module.css'
 
 export default function FoodTray() {
   const { isDragging, dragFoodType, projectileActive, cooldowns } = useFeedingStore()
   const hunger = useMushroomStore((s) => s.hunger)
+  const stage = useMushroomStore((s) => s.stage)
+  const paused = useGameStore((s) => s.paused)
   const fullness = 100 - Math.round(hunger)
+  const availableFoods = STAGES[stage].food
+  const prevFoods = stage > 1 ? STAGES[(stage - 1) as AgeStage].food : []
 
   const onPointerDown = useCallback((type: FoodType, e: React.PointerEvent) => {
     e.preventDefault()
@@ -24,16 +29,20 @@ export default function FoodTray() {
 
   return (
     <>
-      {FOOD_TYPE_KEYS.map((type) => {
+      {availableFoods.map((type, i) => {
         const itemDisabled = projectileActive || !!cooldowns[type]
+        const isNew = stage > 1 && paused && !prevFoods.includes(type)
         return (
         <div
           key={type}
+          data-tutorial={i === 0 ? 'food-tray' : (isNew ? 'new-food' : undefined)}
           className={classNames(styles.foodItem, fullness <= 70 && styles.wobbling, itemDisabled && styles.disabled, isDragging && dragFoodType === type && styles.pickedUp)}
           onPointerDown={(e) => onPointerDown(type, e)}
         >
+          {isNew && <span className={styles.newBadge}>NEW</span>}
           <span className={styles.emoji}>{FOOD_TYPES[type].emoji}</span>
           <span className={styles.label}>{FOOD_TYPES[type].label}</span>
+          <span className={styles.tooltip}>+{FOOD_TYPES[type].hungerRelief} hunger</span>
         </div>
         )
       })}

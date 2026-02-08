@@ -23,28 +23,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: grab;
-  transition: background 0.2s, box-shadow 0.3s, opacity 0.15s;
+  cursor: pointer;
+  transition: opacity 0.15s;
   touch-action: none;
 }
 
-.jar:hover:not(.empty):not(.dragging) {
-  background: rgba(110, 90, 50, 1);
-  transform: scale(1.1);
-}
-
-.jar:active:not(.empty) { cursor: grabbing; }
-.dragging { opacity: 0.3; transform: scale(0.85); }
 .empty { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
-
-.glowing {
-  animation: jarPulse 1.5s ease-in-out infinite;
-}
-
-@keyframes jarPulse {
-  0%, 100% { transform: scale(1); filter: brightness(1); }
-  50% { transform: scale(1.06); filter: brightness(1.2); }
-}
 
 .emoji {
   font-size: var(--fs-emoji);

@@ -39,6 +39,7 @@ interface FeedingState {
   consumeThrowRequest: () => ThrowRequest | null
   recordHit: (foodType: FoodType) => void
   recordMiss: () => void
+  reset: () => void
 }
 
 export const useFeedingStore = create<FeedingState>()((set, get) => ({
@@ -96,4 +97,17 @@ export const useFeedingStore = create<FeedingState>()((set, get) => ({
   },
 
   recordMiss: () => set({ projectileActive: false }),
+
+  reset: () => {
+    samples = []
+    set({
+      isDragging: false,
+      dragFoodType: null,
+      dragX: 0,
+      dragY: 0,
+      throwRequest: null,
+      projectileActive: false,
+      cooldowns: {} as CooldownMap,
+    })
+  },
 }))

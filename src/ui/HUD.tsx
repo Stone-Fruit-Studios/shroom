@@ -8,9 +8,11 @@ import ChatBox from './ChatBox'
 import SpeechBubble from './SpeechBubble'
 import MistButton from './MistButton'
 import FireflyJar from './FireflyJar'
+import TutorialOverlay from './TutorialOverlay'
 import GameOver from './GameOver'
 import styles from './HUD.module.css'
 import { Meter } from '../config'
+import { DEV_MODE } from '../devMode'
 
 function hungerMeter(hunger: number) {
   const fullness = 100 - Math.round(hunger)
@@ -33,12 +35,12 @@ function boredomMeter(boredom: number) {
   return { value: entertainment, color, label }
 }
 
-function useMeterStyle(ref: React.RefObject<HTMLDivElement | null>, value: number, color: string) {
+function useMeterStyle(ref: React.RefObject<HTMLDivElement | null>, value: number, color: string, visible = true) {
   useEffect(() => {
     if (!ref.current) return
     ref.current.style.width = `${value}%`
     ref.current.style.background = color
-  }, [ref, value, color])
+  }, [ref, value, color, visible])
 }
 
 export default function HUD() {
@@ -46,6 +48,7 @@ export default function HUD() {
   const hunger = useMushroomStore((s) => s.hunger)
   const thirst = useMushroomStore((s) => s.thirst)
   const boredom = useMushroomStore((s) => s.boredom)
+  const stage = useMushroomStore((s) => s.stage)
 
   useMushroomBehavior()
   useTTS()
@@ -59,45 +62,51 @@ export default function HUD() {
   const playRef = useRef<HTMLDivElement>(null)
 
   useMeterStyle(feedRef, feed.value, feed.color)
-  useMeterStyle(mistRef, mist.value, mist.color)
-  useMeterStyle(playRef, play.value, play.color)
+  useMeterStyle(mistRef, mist.value, mist.color, stage >= 2)
+  useMeterStyle(playRef, play.value, play.color, stage >= 3)
 
   return (
     <div className={styles.overlay}>
+      {DEV_MODE && <div className={styles.devBadge}>DEV: {DEV_MODE}</div>}
       {phase === 'playing' && (
         <>
+          <TutorialOverlay />
           <SpeechBubble />
-          <div className={styles.toolbar}>
+          <div className={styles.toolbar} data-hud-action>
             <div className={styles.stats}>
-              <div className={styles.statRow}>
+              <div className={styles.statRow} data-tutorial="feed-meter">
                 <span className={styles.statLabel}>Feed</span>
                 <div className={styles.meter}>
                   <div ref={feedRef} className={styles.meterFill} />
                   <span className={styles.meterText}>{feed.label}</span>
                 </div>
               </div>
-              <div className={styles.statRow}>
-                <span className={styles.statLabel}>Mist</span>
-                <div className={styles.meter}>
-                  <div ref={mistRef} className={styles.meterFill} />
-                  <span className={styles.meterText}>{mist.label}</span>
+              {stage >= 2 && (
+                <div className={styles.statRow} data-tutorial="mist-meter">
+                  <span className={styles.statLabel}>Mist</span>
+                  <div className={styles.meter}>
+                    <div ref={mistRef} className={styles.meterFill} />
+                    <span className={styles.meterText}>{mist.label}</span>
+                  </div>
                 </div>
-              </div>
-              <div className={styles.statRow}>
-                <span className={styles.statLabel}>Play</span>
-                <div className={styles.meter}>
-                  <div ref={playRef} className={styles.meterFill} />
-                  <span className={styles.meterText}>{play.label}</span>
+              )}
+              {stage >= 3 && (
+                <div className={styles.statRow} data-tutorial="play-meter">
+                  <span className={styles.statLabel}>Play</span>
+                  <div className={styles.meter}>
+                    <div ref={playRef} className={styles.meterFill} />
+                    <span className={styles.meterText}>{play.label}</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
             <div className={styles.actions}>
               <FoodTray />
-              <MistButton />
-              <FireflyJar />
+              {stage >= 2 && <div data-tutorial="mist-button"><MistButton /></div>}
+              {stage >= 3 && <div data-tutorial="firefly-jar"><FireflyJar /></div>}
             </div>
           </div>
-          <ChatBox />
+          {stage >= 3 && <div data-tutorial="chat-box" data-hud-action><ChatBox /></div>}
         </>
       )}
       {phase === 'gameOver' && <GameOver />}

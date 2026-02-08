@@ -69,6 +69,54 @@
   font-family: var(--font-family);
 }
 
+.newBadge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: rgba(120, 220, 120, 0.9);
+  color: rgba(10, 30, 10, 0.95);
+  font-size: 8px;
+  font-family: var(--font-family);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.5px;
+  padding: 1px 4px;
+  border-radius: 6px;
+  line-height: 1.2;
+  animation: badgePulse 2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes badgePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.9);
+  background: rgba(10, 25, 10, 0.95);
+  border: 1px solid rgba(140, 220, 140, 0.3);
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 9px;
+  color: rgba(180, 255, 180, 0.9);
+  font-family: var(--font-family);
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s, transform 0.15s;
+  z-index: 2;
+}
+
+.foodItem:hover .tooltip {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
 @keyframes wobble {
   0%, 70%, 100% { transform: translateY(0) rotate(0deg); }
   75% { transform: translateY(-3px) rotate(-4deg); }

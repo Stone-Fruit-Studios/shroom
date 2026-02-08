@@ -10,7 +10,7 @@ export function useGameLoop() {
   const triggerGameOver = useGameStore((s) => s.triggerGameOver)
 
   useFrame((_, delta) => {
-    if (phase !== 'playing') return
+    if (phase !== 'playing' || useGameStore.getState().paused) return
     const dt = Math.min(delta, TIMING.maxFrameDelta)
     tick(dt)
     tickSurvival(dt)

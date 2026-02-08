@@ -4,6 +4,18 @@ import express from 'express'
 const app = express()
 app.use(express.json())
 
+// CORS headers for Discord iframe
+app.use((_req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  if (_req.method === 'OPTIONS') {
+    res.sendStatus(204)
+    return
+  }
+  next()
+})
+
 const ANTHROPIC_API_KEY = process.env.VITE_ANTHROPIC_API_KEY
 const PORT = 3001
 const USE_MOCK = !ANTHROPIC_API_KEY

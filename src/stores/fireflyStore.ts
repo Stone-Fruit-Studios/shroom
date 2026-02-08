@@ -2,28 +2,22 @@ import { create } from 'zustand'
 import { useFeedingStore } from './feedingStore'
 import { JAR } from '../constants'
 
-type JarPhase = 'idle' | 'scooping' | 'gifting'
-
-interface GiftRequest {
-  nx: number
-  ny: number
-}
+type JarPhase = 'idle' | 'scooping'
 
 interface FireflyState {
   jarCount: number
   phase: JarPhase
   dragX: number
   dragY: number
-  giftRequest: GiftRequest | null
-  giftActive: boolean
+  pressing: boolean
   coolingDown: boolean
-  startDrag: (x: number, y: number) => void
+  toggleJar: (x?: number, y?: number) => void
+  startScoop: (x: number, y: number) => void
   updateDrag: (x: number, y: number) => void
-  endDrag: (x: number, y: number) => void
+  endScoop: () => void
   addCatch: () => void
-  consumeGiftRequest: () => GiftRequest | null
-  completeGift: () => number
-  resetGift: () => void
+  deliverGift: () => number
+  reset: () => void
 }
 
 export const useFireflyStore = create<FireflyState>()((set, get) => ({
@@ -31,53 +25,49 @@ export const useFireflyStore = create<FireflyState>()((set, get) => ({
   phase: 'idle',
   dragX: 0,
   dragY: 0,
-  giftRequest: null,
-  giftActive: false,
+  pressing: false,
   coolingDown: false,
 
-  startDrag: (x, y) => {
-    const { giftActive, coolingDown, jarCount } = get()
-    if (giftActive || coolingDown) return
+  toggleJar: (x?: number, y?: number) => {
+    const { phase, coolingDown } = get()
+    if (coolingDown) return
     if (useFeedingStore.getState().isDragging) return
-    set({ phase: jarCount > 0 ? 'gifting' : 'scooping', dragX: x, dragY: y })
+    if (phase === 'idle') {
+      set({ phase: 'scooping', pressing: false, dragX: x ?? 0, dragY: y ?? 0 })
+    } else {
+      set({ phase: 'idle', pressing: false })
+    }
+  },
+
+  startScoop: (x, y) => {
+    if (get().phase !== 'scooping') return
+    set({ pressing: true, dragX: x, dragY: y })
   },
 
   updateDrag: (x, y) => {
-    if (get().phase === 'idle') return
+    if (get().phase !== 'scooping') return
     set({ dragX: x, dragY: y })
   },
 
-  endDrag: (x, y) => {
-    const { phase, jarCount } = get()
-    if (phase === 'idle') return
-
-    if (phase === 'scooping' && jarCount === 0) {
-      set({ phase: 'idle' })
-      return
-    }
-
-    // Both scooping-with-fireflies and gifting → deliver to mushroom
-    set({
-      phase: 'idle',
-      giftActive: true,
-      giftRequest: { nx: x / window.innerWidth, ny: y / window.innerHeight },
-    })
+  endScoop: () => {
+    set({ pressing: false })
   },
 
   addCatch: () => set((s) => ({ jarCount: s.jarCount + 1 })),
 
-  consumeGiftRequest: () => {
-    const req = get().giftRequest
-    if (req) set({ giftRequest: null })
-    return req
-  },
-
-  completeGift: () => {
+  deliverGift: () => {
     const count = get().jarCount
-    set({ jarCount: 0, giftActive: false, coolingDown: true })
+    set({ jarCount: 0, phase: 'idle', pressing: false, coolingDown: true })
     setTimeout(() => set({ coolingDown: false }), JAR.cooldownMs)
     return count
   },
 
-  resetGift: () => set({ giftActive: false }),
+  reset: () => set({
+    jarCount: 0,
+    phase: 'idle',
+    dragX: 0,
+    dragY: 0,
+    pressing: false,
+    coolingDown: false,
+  }),
 }))

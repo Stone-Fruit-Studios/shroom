@@ -18,8 +18,8 @@ export default function GiftIndicator() {
 
   useFrame(({ clock }) => {
     if (!ringRef.current || !glowRef.current) return
-    const { jarCount, phase } = useFireflyStore.getState()
-    const show = jarCount > 0 && (phase === 'idle' || phase === 'gifting' || phase === 'scooping')
+    const { jarCount, phase, pressing } = useFireflyStore.getState()
+    const show = jarCount > 0 && phase === 'scooping' && !pressing
 
     const ringTarget = show ? 0.45 : 0
     const glowTarget = show ? 0.15 : 0
@@ -54,7 +54,7 @@ export default function GiftIndicator() {
       </mesh>
       <Html center position={[0, r + 0.15, 0]} className={styles.htmlWrapper}>
         <div ref={htmlRef} className={styles.dropLabel}>
-          drop here
+          tap to gift
         </div>
       </Html>
     </group>
