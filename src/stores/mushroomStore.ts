@@ -3,7 +3,7 @@ import { subscribeWithSelector } from 'zustand/middleware'
 import { chat } from '../ai/aiService'
 import { buildSystemPrompt, buildInitiationPrompt, buildReactionPrompt } from '../ai/prompts'
 import type { InitiationTrigger, ReactionEvent } from '../ai/prompts'
-import { HUNGER_MESSAGES, THIRST_MESSAGES, BOREDOM_MESSAGES } from '../ai/messages'
+import { HUNGER_MESSAGES, THIRST_MESSAGES, BOREDOM_MESSAGES, CHAT_FALLBACKS, FEED_REACTIONS, MIST_REACTIONS, FIREFLY_MESSAGES } from '../ai/messages'
 import { pickRandom } from '../utils/helpers'
 import { STATS, MIST, JAR, FOOD_TYPES, STAGES, AI, TIMING } from '../constants'
 import { tts } from '../audio/ttsService'
@@ -157,7 +157,8 @@ export const useMushroomStore = create<MushroomState>()(
         })
       } catch (err) {
         console.warn('[shroom] sendMessage API failed:', err)
-        response = "Hmm, my thoughts feel fuzzy right now... say that again?"
+        const mode = get().evolution === 'dark' ? 'dark' : 'normal'
+        response = pickRandom(CHAT_FALLBACKS[mode])
       }
 
       pushAssistantMessage(set, response, {
@@ -202,8 +203,9 @@ export const useMushroomStore = create<MushroomState>()(
       // Only fall back after all retries exhausted
       set({ isConversing: false })
       const mode = evolution === 'dark' ? 'dark' : 'normal'
-      const fallbacks = { hunger: HUNGER_MESSAGES, thirst: THIRST_MESSAGES, boredom: BOREDOM_MESSAGES }
-      pushAssistantMessage(set, pickRandom(fallbacks[trigger][mode]))
+      const triggerFallbacks = { hunger: HUNGER_MESSAGES, thirst: THIRST_MESSAGES, boredom: BOREDOM_MESSAGES }
+      const pool = [...triggerFallbacks[trigger][mode], ...CHAT_FALLBACKS[mode]]
+      pushAssistantMessage(set, pickRandom(pool))
     },
 
     reactToEvent: async (event) => {
@@ -249,7 +251,13 @@ export const useMushroomStore = create<MushroomState>()(
         pushAssistantMessage(set, response, { isConversing: false })
       } catch (err) {
         console.warn('[shroom] reactToEvent failed:', err)
-        set({ isConversing: false })
+        const mode = evolution === 'dark' ? 'dark' : 'normal'
+        const reactionFallbacks: Record<ReactionEvent, string[]> = {
+          fed: FEED_REACTIONS[mode],
+          misted: MIST_REACTIONS[mode],
+          gifted: mode === 'dark' ? FIREFLY_MESSAGES.dark : FIREFLY_MESSAGES.normal.few,
+        }
+        pushAssistantMessage(set, pickRandom(reactionFallbacks[event]), { isConversing: false })
       }
     },
 

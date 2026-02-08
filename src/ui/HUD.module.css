@@ -14,7 +14,7 @@
 .toolbar {
   position: absolute;
   bottom: 80px;
-  left: 20px;
+  left: 40px;
   display: flex;
   flex-direction: column;
   gap: 10px;
