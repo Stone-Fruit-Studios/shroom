@@ -1,26 +1,28 @@
-import { Canvas } from '@react-three/fiber'
-import Scene from './components/Scene'
-import HUD from './ui/HUD'
-import { useMultiplayer } from './hooks/useMultiplayer'
+import { Canvas } from "@react-three/fiber";
+import Scene from "./components/Scene";
+import { useMultiplayer } from "./hooks/useMultiplayer";
+import HUD from "./ui/HUD";
 
 export default function App() {
-  const { ready } = useMultiplayer()
+  const { ready } = useMultiplayer();
 
   if (!ready) {
     return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        background: '#0a0a1a',
-        color: '#7a6f9a',
-        fontFamily: 'monospace',
-        fontSize: '1.2rem',
-      }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100vh",
+          background: "#0a0a1a",
+          color: "#7a6f9a",
+          fontFamily: "monospace",
+          fontSize: "1.2rem",
+        }}
+      >
         Connecting...
       </div>
-    )
+    );
   }
 
   return (
@@ -30,5 +32,5 @@ export default function App() {
       </Canvas>
       <HUD />
     </>
-  )
+  );
 }

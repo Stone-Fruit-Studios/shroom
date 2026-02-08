@@ -234,10 +234,21 @@ function GlowPlant({ position, scale = 1, evolution }: {
   position: [number, number, number]; scale?: number; evolution: EvolutionState
 }) {
   const hasLight = scale >= Env.glowLightThreshold
+  const groupRef = useRef<THREE.Group>(null)
   const lightRef = useRef<THREE.PointLight>(null)
   const stemRef = useRef<THREE.MeshStandardMaterial>(null)
   const bulbRef = useRef<THREE.MeshStandardMaterial>(null)
   const target = evolution === 'dark' ? Env.plantColors.dark : Env.plantColors.normal
+  // Per-plant randomized sway params derived from position
+  const rng = useMemo(() => mulberry32(Math.floor((position[0] + 50) * 100 + (position[2] + 50) * 7)), [position])
+  const sway = useMemo(() => ({
+    speedZ: 0.8 + rng() * 0.8,
+    speedX: 0.5 + rng() * 0.6,
+    ampZ: 0.08 + rng() * 0.1,
+    ampX: 0.04 + rng() * 0.06,
+    phase: rng() * Math.PI * 2,
+    phaseX: rng() * Math.PI * 2,
+  }), [rng])
 
   useFrame((state) => {
     stemRef.current?.color.lerp(target.stem, LERP)
@@ -249,10 +260,15 @@ function GlowPlant({ position, scale = 1, evolution }: {
       lightRef.current.color.lerp(target.bulb, LERP)
       lightRef.current.intensity = 0.5 + Math.sin(state.clock.elapsedTime * 2 + position[0]) * 0.25
     }
+    if (groupRef.current) {
+      const t = state.clock.elapsedTime
+      groupRef.current.rotation.z = Math.sin(t * sway.speedZ + sway.phase) * sway.ampZ
+      groupRef.current.rotation.x = Math.sin(t * sway.speedX + sway.phaseX) * sway.ampX
+    }
   })
 
   return (
-    <group position={position} scale={scale}>
+    <group position={position} scale={scale} ref={groupRef}>
       <mesh>
         <cylinderGeometry args={[0.008, 0.012, 0.2, 6]} />
         <meshStandardMaterial ref={stemRef} color={Env.plantColors.normal.stem} />

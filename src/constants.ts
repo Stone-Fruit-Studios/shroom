@@ -40,7 +40,7 @@ export const AI = {
 } as const
 
 export const THROW = {
-  hitRadius: 2.2,
+  hitRadius: 1.0,
   foodScale: 0.18,
   mouthPos: [0, 0.12, 0.3],
   dragZ: 2.5,

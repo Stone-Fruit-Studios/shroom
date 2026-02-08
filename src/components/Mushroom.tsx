@@ -33,7 +33,6 @@ const STEM_PROFILE = (() => {
   const halfH = h / 2
   const roundR = 0.08
   const pts: THREE.Vector2[] = []
-  pts.push(new THREE.Vector2(0, halfH))
   pts.push(new THREE.Vector2(topR, halfH))
   pts.push(new THREE.Vector2(botR, -halfH + roundR))
   const steps = 6
@@ -365,7 +364,7 @@ export default function Mushroom() {
       {/* Stem — lathe with rounded bottom */}
       <mesh castShadow>
         <latheGeometry args={[STEM_PROFILE, 24]} />
-        <meshStandardMaterial ref={stemMatRef} color={M.colors.normal.stem} />
+        <meshStandardMaterial ref={stemMatRef} color={M.colors.normal.stem} side={THREE.DoubleSide} />
       </mesh>
 
       {/* Cap — rounded beret shape, tilted back to show face */}

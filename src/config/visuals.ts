@@ -329,7 +329,7 @@ export const Env = {
   moonLightColor: Color.MOON_LIGHT_COOL,
   moonOpacity: { normal: 0.9, dark: 0.7 },
   moonLightIntensity: { normal: 1.5, dark: 1.0 },
-  moonPosition: [4, 5, -6] as const,
+  moonPosition: [4, 8, -6] as const,
   moonRadius: 1.5,
   skyRadius: 50,
   groundRadius: 10,
