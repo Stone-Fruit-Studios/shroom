@@ -1,90 +1,141 @@
 import { useRef, useCallback, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
-import { useGLTF, Clone, useAnimations } from "@react-three/drei";
+import { useGLTF, useAnimations } from "@react-three/drei";
 import * as THREE from "three";
 import { useMushroomStore } from "../stores/mushroomStore";
+import { useFireflyStore } from "../stores/fireflyStore";
+import { mushroomWorldPos } from "../stores/mushroomPosition";
 import { BEHAVIOR, POKE } from "../constants";
-import { POKE_MESSAGES, FIREFLY_MESSAGES } from "../ai/messages";
+import { pickRandom } from "../utils/helpers";
+import { POKE_MESSAGES } from "../ai/messages";
+
+const IDLE_ANIMATIONS = [
+  "Bounce_Right",
+  "Bounce_Left",
+  "Hop",
+  "Idle_Wobble",
+  "Restless_Hop",
+];
+
+const ANIMATION_OFFSETS: Record<string, number> = {
+  Bounce_Right: 0.35,
+  Bounce_Left: -0.35,
+  Hop: 0,
+  Idle_Wobble: 0,
+  Restless_Hop: 0,
+};
 
 const ANIM = {
   happy: {
     bounceSpeed: 2,
     bounceAmt: 0.05,
-    baseY: 0,
+    baseY: -0.5,
     swaySpeed: 1.5,
     swayAmt: 0.03,
   },
   hungry: {
     bounceSpeed: 1.2,
     bounceAmt: 0.02,
-    baseY: -0.05,
+    baseY: -0.55,
     swaySpeed: 0.8,
     swayAmt: 0.01,
   },
 } as const;
 
-const IDLE_ANIMATIONS = ["Bounce_Right", "Bounce_Left", "Hop", "Idle_Wobble", "Restless_Hop"];
-
-// Movement offsets for each animation
-const ANIMATION_OFFSETS: Record<string, number> = {
-  Bounce_Right: 0.31, // Moves right
-  Bounce_Left: -0.31, // Moves left
-  Hop: 0, // Stays in place
-  Idle_Wobble: 0, // Stays in place
-  Restless_Hop: 0, // Stays in place
-};
-
-function pickRandom(arr: string[]) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function getRandomIdleAnimation(): string {
+function getRandomAnimation(): string {
   return IDLE_ANIMATIONS[Math.floor(Math.random() * IDLE_ANIMATIONS.length)];
 }
 
-export default function Mushroom() {
-  // Load both GLB models
-  const cuteGltf = useGLTF("/Mushroom-cute.glb");
-  const evilGltf = useGLTF("/Mushroom-evil.glb");
+const _projVec = new THREE.Vector3();
 
-  // Separate refs for each model
+export default function Mushroom() {
+  const cuteGltf = useGLTF("/mushroom-cute.glb");
+  const evilGltf = useGLTF("/mushroom-evil.glb");
+
   const cuteGroupRef = useRef<THREE.Group>(null);
   const evilGroupRef = useRef<THREE.Group>(null);
+  const shadowRef = useRef<THREE.Mesh>(null);
 
-  // Get evolution state to determine which model to use
   const evolution = useMushroomStore((s) => s.evolution);
-  const isDark = evolution === 'dark' || evolution === 'demonic';
+  const isDark = evolution === "dark" || evolution === "demonic";
 
-  // Separate animation systems for each model
   const cuteAnimations = useAnimations(cuteGltf.animations, cuteGroupRef);
   const evilAnimations = useAnimations(evilGltf.animations, evilGroupRef);
 
-  // Use the appropriate animation system and ref based on current mode
   const { actions } = isDark ? evilAnimations : cuteAnimations;
   const groupRef = isDark ? evilGroupRef : cuteGroupRef;
+
   const currentAnimationRef = useRef<string | null>(null);
-  const lastAnimationStartTime = useRef<number>(0);
-  const basePositionX = useRef<number>(0); // Track accumulated X position
-  const consecutiveRightMoves = useRef<number>(0);
-  const consecutiveLeftMoves = useRef<number>(0);
+  const lastAnimationStartTime = useRef(0);
+  const basePositionX = useRef(0);
+  const consecutiveRightMoves = useRef(0);
+  const consecutiveLeftMoves = useRef(0);
 
   const feedBounce = useRef(0);
-  const talkWobble = useRef(0);
   const mouthOpen = useRef(0);
   const lastFeedRef = useRef(0);
-
   const mistShimmy = useRef(0);
   const lastMistRef = useRef(0);
-
   const pokeJolt = useRef(0);
   const lastPokeRef = useRef(0);
   const pokeTimestamps = useRef<number[]>([]);
-
   const giftGlow = useRef(0);
   const lastGiftRef = useRef(0);
-  const shadowRef = useRef<THREE.Mesh>(null);
+
+  // Helper: stop all actions and start a fresh one
+  const startAnimation = useCallback(
+    (name: string) => {
+      // Stop all running actions first
+      Object.values(actions).forEach((action) => {
+        if (action) {
+          action.stop();
+        }
+      });
+      const action = actions[name];
+      if (action) {
+        action.clampWhenFinished = true;
+        action.reset().setLoop(THREE.LoopOnce, 1).play();
+        currentAnimationRef.current = name;
+      }
+    },
+    [actions],
+  );
+
+  // Reset animation system when model switches
+  useEffect(() => {
+    currentAnimationRef.current = null;
+    lastAnimationStartTime.current = 0;
+    consecutiveRightMoves.current = 0;
+    consecutiveLeftMoves.current = 0;
+
+    if (groupRef.current) {
+      groupRef.current.position.x = basePositionX.current;
+    }
+
+    if (actions && Object.keys(actions).length > 0) {
+      startAnimation(getRandomAnimation());
+    }
+  }, [isDark]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Initialize first animation
+  useEffect(() => {
+    if (
+      actions &&
+      Object.keys(actions).length > 0 &&
+      !currentAnimationRef.current
+    ) {
+      startAnimation(getRandomAnimation());
+    }
+  }, [actions, startAnimation]);
 
   const handlePoke = useCallback(() => {
+    const fireflyState = useFireflyStore.getState();
+    if (fireflyState.phase === "scooping" && fireflyState.jarCount > 0) {
+      const count = fireflyState.deliverGift();
+      useMushroomStore.getState().giveFireflies(count);
+      return;
+    }
+
     const now = Date.now();
     const store = useMushroomStore.getState();
 
@@ -102,75 +153,26 @@ export default function Mushroom() {
     store.receiveMessage(msg);
   }, []);
 
-  // Reset animation system when model switches
-  useEffect(() => {
-    console.log("Model switched! Evolution:", evolution, "isDark:", isDark);
-    console.log("Available animations:", Object.keys(actions));
-
-    // Force animation system to restart (but preserve position)
-    currentAnimationRef.current = null;
-    lastAnimationStartTime.current = 0;
-    consecutiveRightMoves.current = 0;
-    consecutiveLeftMoves.current = 0;
-    // Don't reset basePositionX - preserve the mushroom's position when switching models
-
-    // Immediately set the new model's position to match the saved position
-    if (groupRef.current) {
-      groupRef.current.position.x = basePositionX.current;
-    }
-
-    // Start a new animation immediately for the new model
-    if (actions && Object.keys(actions).length > 0) {
-      const firstAnimation = getRandomIdleAnimation();
-      console.log("Starting animation for new model:", firstAnimation);
-      if (actions[firstAnimation]) {
-        actions[firstAnimation]?.reset().setLoop(THREE.LoopOnce, 1).play();
-        currentAnimationRef.current = firstAnimation;
-      }
-    }
-  }, [isDark, actions, evolution, groupRef]);
-
-  // Initialize first animation on mount
-  useEffect(() => {
-    if (actions && Object.keys(actions).length > 0) {
-      console.log("Available animations:", Object.keys(actions));
-      const firstAnimation = getRandomIdleAnimation();
-      console.log("Playing first animation:", firstAnimation);
-      if (actions[firstAnimation]) {
-        actions[firstAnimation]?.reset().setLoop(THREE.LoopOnce, 1).play();
-        currentAnimationRef.current = firstAnimation;
-      } else {
-        console.warn("Animation not found:", firstAnimation);
-      }
-    }
-  }, [actions]);
-
-  useFrame(({ clock }, delta) => {
+  useFrame(({ clock, camera, size }, delta) => {
     if (!groupRef.current) return;
     const t = clock.elapsedTime;
-    const {
-      evolution,
-      hunger,
-      boredom,
-      lastFeedTime,
-      lastMistTime,
-      lastPokeTime,
-      lastGiftTime,
-      lastGiftCount,
-    } = useMushroomStore.getState();
+    const { hunger, lastFeedTime, lastMistTime, lastPokeTime, lastGiftTime } =
+      useMushroomStore.getState();
 
     // Feed detection
     if (lastFeedTime > 0 && lastFeedTime !== lastFeedRef.current) {
       lastFeedRef.current = lastFeedTime;
       feedBounce.current = 1;
-      mouthOpen.current = 0.4;
+      mouthOpen.current = 1.2;
+      useMushroomStore.getState().reactToEvent("fed");
     }
-    if (mouthOpen.current > 0) mouthOpen.current -= delta;
+    if (mouthOpen.current > 0) mouthOpen.current -= delta * 0.8;
 
     // Mist detection
     if (lastMistTime > 0 && lastMistTime !== lastMistRef.current) {
       lastMistRef.current = lastMistTime;
       mistShimmy.current = 1;
+      useMushroomStore.getState().reactToEvent("misted");
     }
 
     // Poke detection
@@ -184,50 +186,33 @@ export default function Mushroom() {
       lastGiftRef.current = lastGiftTime;
       giftGlow.current = 1;
       feedBounce.current = 0.8;
-      const store = useMushroomStore.getState();
-      const dark = evolution === "dark";
-      let msg: string;
-      if (dark) {
-        msg = pickRandom(FIREFLY_MESSAGES.dark);
-      } else if (lastGiftCount >= 10) {
-        msg = pickRandom(FIREFLY_MESSAGES.normal.lots);
-      } else if (lastGiftCount >= 5) {
-        msg = pickRandom(FIREFLY_MESSAGES.normal.many);
-      } else {
-        msg = pickRandom(FIREFLY_MESSAGES.normal.few);
-      }
-      store.receiveMessage(msg);
+      useMushroomStore.getState().reactToEvent("gifted");
     }
 
     // Decay animations
     const anim = hunger >= BEHAVIOR.hungerThreshold ? ANIM.hungry : ANIM.happy;
     feedBounce.current *= 0.95;
-    talkWobble.current *= 0.93;
     mistShimmy.current *= 0.94;
-    pokeJolt.current *= 0.88;
-    giftGlow.current *= 0.96;
+    pokeJolt.current *= 0.9;
+    giftGlow.current *= 0.97;
 
-    // Position: base position + procedural effects
-    const verticalOffset = -0.5; // Move mushroom down
+    // Position: base Y + procedural effects
     groupRef.current.position.y =
       anim.baseY +
-      verticalOffset +
       Math.sin(t * anim.bounceSpeed) * anim.bounceAmt +
       feedBounce.current * Math.sin(t * 8) * 0.15 +
       mistShimmy.current * Math.sin(t * 18) * 0.04;
 
-    // X position: only set when animation is not running (let animation control movement)
+    // X position: let animation control when running, add procedural effects
     const isAnimating =
       currentAnimationRef.current &&
       actions[currentAnimationRef.current]?.isRunning();
     if (!isAnimating) {
-      // When not animating, apply small procedural effects
       groupRef.current.position.x =
         basePositionX.current +
         pokeJolt.current * Math.sin(t * 20) * 0.05 +
         mistShimmy.current * Math.sin(t * 22) * 0.03;
     } else {
-      // Animation is controlling X position - just add tiny procedural effects on top
       const animatedX = groupRef.current.position.x;
       groupRef.current.position.x =
         animatedX +
@@ -235,15 +220,26 @@ export default function Mushroom() {
         mistShimmy.current * Math.sin(t * 22) * 0.01;
     }
 
-    // Rotation: sway + talk wobble + mist shimmy
+    // Write world + screen position for interaction targets
+    mushroomWorldPos.x = groupRef.current.position.x;
+    mushroomWorldPos.y = groupRef.current.position.y;
+    _projVec.set(
+      groupRef.current.position.x,
+      groupRef.current.position.y + 0.3,
+      0.3,
+    );
+    _projVec.project(camera);
+    mushroomWorldPos.screenX = ((_projVec.x + 1) / 2) * size.width;
+    mushroomWorldPos.screenY = ((1 - _projVec.y) / 2) * size.height;
+
+    // Rotation: sway + effects
     const swayAnim =
-      boredom >= BEHAVIOR.boredomThreshold ? ANIM.hungry : ANIM.happy;
+      hunger >= BEHAVIOR.hungerThreshold ? ANIM.hungry : ANIM.happy;
     groupRef.current.rotation.z =
       Math.sin(t * swayAnim.swaySpeed) * swayAnim.swayAmt +
-      talkWobble.current * Math.sin(t * 12) * 0.08 +
       mistShimmy.current * Math.sin(t * 15) * 0.2;
 
-    // Squash/stretch + poke squish
+    // Squash/stretch + poke squish (base scale 0.25 is on inner group)
     const squash = 1 + Math.sin(t * anim.bounceSpeed) * 0.02;
     const pokeSquish = 1 - pokeJolt.current * 0.08;
     groupRef.current.scale.set(
@@ -252,66 +248,81 @@ export default function Mushroom() {
       1 / squash / pokeSquish,
     );
 
-    // Update shadow position to follow mushroom
+    // Update shadow position
     if (shadowRef.current) {
       shadowRef.current.position.x = groupRef.current.position.x;
     }
 
-    // Animation timing and switching
-    // Check if we need to start a new animation
-    const currentAction = currentAnimationRef.current ? actions[currentAnimationRef.current] : null;
+    // Animation timing — start new animation when current finishes
+    const currentAction = currentAnimationRef.current
+      ? actions[currentAnimationRef.current]
+      : null;
     const isCurrentlyRunning = currentAction?.isRunning() ?? false;
     const timeSinceLastStart = t - lastAnimationStartTime.current;
 
     const shouldStartNewAnimation =
-      (Object.keys(actions).length > 0) && // Actions are loaded
-      (!currentAnimationRef.current || !isCurrentlyRunning) && // No animation or finished
-      (timeSinceLastStart > 0.2); // Don't start too frequently
+      Object.keys(actions).length > 0 &&
+      (!currentAnimationRef.current || !isCurrentlyRunning) &&
+      timeSinceLastStart > 0.2;
 
     if (shouldStartNewAnimation) {
-      // Apply the movement offset from the animation that just finished
-      const finishedAnimation = currentAnimationRef.current;
-      if (finishedAnimation && ANIMATION_OFFSETS[finishedAnimation] !== undefined) {
-        const offset = ANIMATION_OFFSETS[finishedAnimation];
+      // Apply movement offset from finished animation
+      if (currentAnimationRef.current) {
+        const offset = ANIMATION_OFFSETS[currentAnimationRef.current] ?? 0;
+        if (offset !== 0) {
+          basePositionX.current = Math.max(
+            -2.5,
+            Math.min(2.5, basePositionX.current + offset),
+          );
+          groupRef.current.position.x = basePositionX.current;
+        }
 
-        // Track consecutive movements
-        if (finishedAnimation === "Bounce_Right") {
+        // Track consecutive moves
+        if (currentAnimationRef.current === "Bounce_Right") {
           consecutiveRightMoves.current++;
           consecutiveLeftMoves.current = 0;
-        } else if (finishedAnimation === "Bounce_Left") {
+        } else if (currentAnimationRef.current === "Bounce_Left") {
           consecutiveLeftMoves.current++;
           consecutiveRightMoves.current = 0;
         } else {
-          // Reset counters for non-movement animations
           consecutiveRightMoves.current = 0;
           consecutiveLeftMoves.current = 0;
         }
-
-        basePositionX.current += offset;
-        basePositionX.current = Math.max(-3, Math.min(3, basePositionX.current));
-        groupRef.current.position.x = basePositionX.current;
       }
 
       // Filter animations based on consecutive move limits
       let availableAnimations = [...IDLE_ANIMATIONS];
-
       if (consecutiveRightMoves.current >= 3) {
-        availableAnimations = availableAnimations.filter((a) => a !== "Bounce_Right");
+        availableAnimations = availableAnimations.filter(
+          (a) => a !== "Bounce_Right",
+        );
       }
-
       if (consecutiveLeftMoves.current >= 3) {
-        availableAnimations = availableAnimations.filter((a) => a !== "Bounce_Left");
+        availableAnimations = availableAnimations.filter(
+          (a) => a !== "Bounce_Left",
+        );
+      }
+      // Prevent moving off-screen
+      if (basePositionX.current >= 2.2) {
+        availableAnimations = availableAnimations.filter(
+          (a) => a !== "Bounce_Right",
+        );
+      }
+      if (basePositionX.current <= -2.2) {
+        availableAnimations = availableAnimations.filter(
+          (a) => a !== "Bounce_Left",
+        );
       }
 
-      // Pick next animation
-      const nextAnimation = availableAnimations[
-        Math.floor(Math.random() * availableAnimations.length)
-      ];
-
-      // Play the animation
-      const action = actions[nextAnimation];
-      if (action) {
-        action.reset().setLoop(THREE.LoopOnce, 1).play();
+      const nextAnimation =
+        availableAnimations[
+          Math.floor(Math.random() * availableAnimations.length)
+        ];
+      if (actions[nextAnimation]) {
+        // Stop all actions before starting a new one
+        Object.values(actions).forEach((a) => a?.stop());
+        actions[nextAnimation]!.clampWhenFinished = true;
+        actions[nextAnimation]!.reset().setLoop(THREE.LoopOnce, 1).play();
         currentAnimationRef.current = nextAnimation;
         lastAnimationStartTime.current = t;
       }
@@ -322,7 +333,8 @@ export default function Mushroom() {
     <>
       {/* Blob shadow */}
       <mesh
-        position={[basePositionX.current, -0.98, 0]}
+        ref={shadowRef}
+        position={[0, -0.98, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
         renderOrder={-10}
       >
@@ -335,20 +347,24 @@ export default function Mushroom() {
         />
       </mesh>
 
-      {!isDark && (
-        <group ref={cuteGroupRef} onPointerDown={handlePoke}>
-          <group scale={0.25}>
-            <Clone object={cuteGltf.scene} castShadow receiveShadow />
-          </group>
+      <group
+        ref={cuteGroupRef}
+        visible={!isDark}
+        onPointerDown={!isDark ? handlePoke : undefined}
+      >
+        <group scale={0.3}>
+          <primitive object={cuteGltf.scene} />
         </group>
-      )}
-      {isDark && (
-        <group ref={evilGroupRef} onPointerDown={handlePoke}>
-          <group scale={0.25}>
-            <Clone object={evilGltf.scene} castShadow receiveShadow />
-          </group>
+      </group>
+      <group
+        ref={evilGroupRef}
+        visible={isDark}
+        onPointerDown={isDark ? handlePoke : undefined}
+      >
+        <group scale={0.3}>
+          <primitive object={evilGltf.scene} />
         </group>
-      )}
+      </group>
     </>
   );
 }
