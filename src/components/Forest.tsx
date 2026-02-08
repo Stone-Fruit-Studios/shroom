@@ -285,7 +285,7 @@ export default function Forest() {
         <meshStandardMaterial ref={groundRef} color={Env.groundColors.normal} />
       </mesh>
 
-      <Clouds>
+      <Clouds texture="/cloud.png">
         {ALL_CLOUDS.map((c, i) => (
           <Cloud
             key={i}
